@@ -32,7 +32,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
+   <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Animated gradient background */}
       <motion.div
         className="absolute inset-0 -z-10 opacity-20"

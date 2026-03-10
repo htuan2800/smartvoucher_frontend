@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { sidebarItems } from "./SidebarItem"
-import { usePermission } from "@/hooks/usePermission"
+
 interface SidebarProps {
   sidebarOpen: boolean;
   toggleExpanded: (title: string) => void
@@ -20,15 +20,7 @@ interface SidebarProps {
   expandedItems: Record<string, boolean>;
 }
 const SidebarDesktop = ({ sidebarOpen, expandedItems, toggleExpanded, isActivePath, handleNavClick }: SidebarProps) => {
-  const { can } = usePermission();
 
-  // Logic lọc menu: Chỉ giữ lại item nào mà user có quyền
-  const filteredItems = sidebarItems.filter((item) => {
-    //Nếu menu không yêu cầu quyền gì -> Hiện luôn
-    if (!item.requiredPermission) return true;
-    //Nếu có yêu cầu -> Check quyền
-    return can(item.requiredPermission);
-  });
   return (
     <div
       className={cn(
@@ -58,7 +50,7 @@ const SidebarDesktop = ({ sidebarOpen, expandedItems, toggleExpanded, isActivePa
 
         <ScrollArea className="flex-1 px-3 py-2">
           <div className="space-y-1">
-            {filteredItems.map((item) => (
+            {sidebarItems.map((item) => (
               <div key={item.title} className="mb-1">
                 <button
                   className={cn(

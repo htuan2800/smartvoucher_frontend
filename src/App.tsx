@@ -1,4 +1,3 @@
-import './App.css'
 import { Route, Routes } from 'react-router-dom'
 import { Toaster } from './components/ui/sonner'
 import AdminLayout from './layouts/AdminLayout'

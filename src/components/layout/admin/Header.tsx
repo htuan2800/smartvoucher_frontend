@@ -16,7 +16,7 @@ interface HeaderProps {
   setMobileMenuOpen: (open: boolean) => void;
 }
 const Header = ( { sidebarOpen, setSidebarOpen, setMobileMenuOpen }: HeaderProps) => {
-  const [notifications] = useState(5)
+  const [notifications] = useState(0)
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(true)}>

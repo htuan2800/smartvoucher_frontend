@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { Toaster } from './components/ui/sonner'
 import AdminLayout from './layouts/AdminLayout'
-import DashboardPage from './pages/Admin/DashboardPage'
+import DashboardPage from './pages/Admin/Dashboard/DashboardPage'
 function App() {
    return (
     <>

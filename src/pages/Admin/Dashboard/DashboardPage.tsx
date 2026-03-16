@@ -33,7 +33,7 @@ import {
   Bar
 } from "recharts";
 import { Ticket, Percent, TrendingUp, DollarSign } from "lucide-react";
-import { API_BASE_URL } from '@/services/apiService';
+import { authApi, voucherApi } from '@/services/apiService';
 import { DatePickerWithRange } from './DateRangePicker';
 
 // --- UTILS ---
@@ -58,6 +58,7 @@ const formatChartDate = (dateString: string, groupBy: string) => {
 // --- COMPONENT CHÍNH ---
 export default function DashboardPage() {
   const [topFilter, setTopFilter] = useState("most_used"); // State quản lý tiêu chí của Top Vouchers
+  const [authError, setAuthError] = useState<string | null>(null);
   // 1. STATES BỘ LỌC
   const [dateChart, setDateChart] = useState({ from: "2026-03-01", to: "2026-03-31" });
   const [chartGroupBy, setChartGroupBy] = useState("day");
@@ -74,16 +75,18 @@ export default function DashboardPage() {
   // --- API: OVERVIEW ---
   useEffect(() => {
     const fetchOverview = async () => {
-      // API overview có vẻ không nhận start_date/end_date trong JSON mẫu của bạn, 
-      // nhưng nếu cần, bạn có thể truyền thêm vào URL
-      const res = await fetch(`${API_BASE_URL}/vouchers/stats/overview/`, {
-        headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzczMzM5OTA5LCJpYXQiOjE3NzMzMjE5MDksImp0aSI6ImYzNjBkNWY1NmU0OTQyYTc4MTQwMjJhODg4Zjc0MDAyIiwidXNlcl9pZCI6IjEifQ.0k0gvVDmiLVc33-D5-yW9FVgSJ-PvZKVo71MMkR_8jE`,
+      if (!authApi.getAccessToken()) {
+        setAuthError('Bạn chưa đăng nhập hoặc đã hết phiên. Vui lòng đăng nhập lại.');
+        return;
+      }
 
-        }
-      });
-      const data = await res.json();
-      setOverview(data);
+      try {
+        const data = await voucherApi.statsOverview();
+        setOverview(data);
+        setAuthError(null);
+      } catch {
+        setAuthError('Không thể tải dữ liệu Dashboard. Vui lòng đăng nhập lại.');
+      }
     };
     fetchOverview();
   }, []); // Chỉ chạy lại khi dateOverview đổi
@@ -91,23 +94,23 @@ export default function DashboardPage() {
   // --- API: REVENUE CHART (XỬ LÝ LOGIC ĐẶC BIỆT) ---
   useEffect(() => {
     const fetchChart = async () => {
-      // Khởi tạo URL cơ bản
-      let url = `${API_BASE_URL}/vouchers/stats/revenue-chart/?group_by=${chartGroupBy}`;
-
-      // Nếu là day, mới nối thêm start_date và end_date
-      if (chartGroupBy === "day" && dateChart.from && dateChart.to) {
-        url += `&start_date=${dateChart.from}&end_date=${dateChart.to}`;
+      if (!authApi.getAccessToken()) {
+        return;
       }
 
-      const res = await fetch(url,
-        {
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzczMzM5OTA5LCJpYXQiOjE3NzMzMjE5MDksImp0aSI6ImYzNjBkNWY1NmU0OTQyYTc4MTQwMjJhODg4Zjc0MDAyIiwidXNlcl9pZCI6IjEifQ.0k0gvVDmiLVc33-D5-yW9FVgSJ-PvZKVo71MMkR_8jE`,
+      const params: { group_by: string; start_date?: string; end_date?: string } = { group_by: chartGroupBy };
 
-          }
-        });
-      const data = await res.json();
-      setChart(data.chart || []);
+      if (chartGroupBy === "day" && dateChart.from && dateChart.to) {
+        params.start_date = dateChart.from;
+        params.end_date = dateChart.to;
+      }
+
+      try {
+        const data = await voucherApi.statsRevenueChart(params);
+        setChart(data.chart || []);
+      } catch {
+        setAuthError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+      }
     };
     fetchChart();
   }, [chartGroupBy, dateChart]); // Chạy lại khi group_by hoặc dateChart đổi
@@ -115,16 +118,22 @@ export default function DashboardPage() {
   // --- API: TOP VOUCHERS ---
   useEffect(() => {
     const fetchTopVouchers = async () => {
-      if (!dateTop.from || !dateTop.to) return;
-      const url = `${API_BASE_URL}/vouchers/stats/top-vouchers/?start_date=${dateTop.from}&end_date=${dateTop.to}&limit=5`;
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzczMzM5OTA5LCJpYXQiOjE3NzMzMjE5MDksImp0aSI6ImYzNjBkNWY1NmU0OTQyYTc4MTQwMjJhODg4Zjc0MDAyIiwidXNlcl9pZCI6IjEifQ.0k0gvVDmiLVc33-D5-yW9FVgSJ-PvZKVo71MMkR_8jE`,
+      if (!authApi.getAccessToken()) {
+        return;
+      }
 
-        }
-      });
-      const data = await res.json();
-      setTopVouchers(data.top_vouchers || { most_used: [], highest_revenue: [] });
+      if (!dateTop.from || !dateTop.to) return;
+
+      try {
+        const data = await voucherApi.topVouchers({
+          start_date: dateTop.from,
+          end_date: dateTop.to,
+          limit: 5,
+        });
+        setTopVouchers(data.top_vouchers || { most_used: [], highest_revenue: [] });
+      } catch {
+        setAuthError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+      }
     };
     fetchTopVouchers();
   }, [dateTop]);
@@ -132,16 +141,22 @@ export default function DashboardPage() {
   // --- API: PERFORMANCE ---
   useEffect(() => {
     const fetchPerformance = async () => {
-      if (!datePerformance.from || !datePerformance.to) return;
-      const url = `${API_BASE_URL}/vouchers/stats/performance/?start_date=${datePerformance.from}&end_date=${datePerformance.to}&ordering=-usage_count`;
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzczMzM5OTA5LCJpYXQiOjE3NzMzMjE5MDksImp0aSI6ImYzNjBkNWY1NmU0OTQyYTc4MTQwMjJhODg4Zjc0MDAyIiwidXNlcl9pZCI6IjEifQ.0k0gvVDmiLVc33-D5-yW9FVgSJ-PvZKVo71MMkR_8jE`,
+      if (!authApi.getAccessToken()) {
+        return;
+      }
 
-        }
-      });
-      const data = await res.json();
-      setPerformance(data.results || []);
+      if (!datePerformance.from || !datePerformance.to) return;
+
+      try {
+        const data = await voucherApi.performance({
+          start_date: datePerformance.from,
+          end_date: datePerformance.to,
+          ordering: '-usage_count',
+        });
+        setPerformance(data.results || []);
+      } catch {
+        setAuthError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+      }
     };
     fetchPerformance();
   }, [datePerformance]);
@@ -151,6 +166,14 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <h2 className="text-3xl font-bold tracking-tight">Thống kê Voucher</h2>
       </div>
+
+      {authError && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4 text-sm text-red-700">
+            {authError}
+          </CardContent>
+        </Card>
+      )}
 
       {/* --- PHẦN 1: OVERVIEW CARDS --- */}
       <div className="space-y-4">

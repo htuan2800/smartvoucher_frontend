@@ -1,14 +1,15 @@
-import axios from 'axios';
-import { API_BASE_URL } from './apiService';
+import { voucherApi } from './apiService';
 export const DashboardService = {
     getDashboardStats: async () => {
-        const response = await axios.get(`${API_BASE_URL}/vouchers/stats/overview`);
-        return response.data;
+        return voucherApi.statsOverview();
 
     },
 
     getRevenueStats: async (startDate: string, endDate: string, groupBy: string) => {
-        const response = await axios.get(`${API_BASE_URL}/vouchers/stats/revenue`, { params: { startDate, endDate, groupBy } });
-        return response.data;
+        return voucherApi.statsRevenueChart({
+            group_by: groupBy,
+            start_date: startDate,
+            end_date: endDate,
+        });
     }
 }

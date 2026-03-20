@@ -33,8 +33,9 @@ import {
   Bar
 } from "recharts";
 import { Ticket, Percent, TrendingUp, DollarSign } from "lucide-react";
-import { authApi, voucherApi } from '@/services/apiService';
+import { API_BASE_URL, authFetch } from '@/services/apiService';
 import { DatePickerWithRange } from './DateRangePicker';
+import { useNavigate } from 'react-router-dom';
 
 // --- UTILS ---
 const formatCurrency = (value: number) => {
@@ -57,8 +58,8 @@ const formatChartDate = (dateString: string, groupBy: string) => {
 
 // --- COMPONENT CHÍNH ---
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [topFilter, setTopFilter] = useState("most_used"); // State quản lý tiêu chí của Top Vouchers
-  const [authError, setAuthError] = useState<string | null>(null);
   // 1. STATES BỘ LỌC
   const [dateChart, setDateChart] = useState({ from: "2026-03-01", to: "2026-03-31" });
   const [chartGroupBy, setChartGroupBy] = useState("day");
@@ -75,18 +76,9 @@ export default function DashboardPage() {
   // --- API: OVERVIEW ---
   useEffect(() => {
     const fetchOverview = async () => {
-      if (!authApi.getAccessToken()) {
-        setAuthError('Bạn chưa đăng nhập hoặc đã hết phiên. Vui lòng đăng nhập lại.');
-        return;
-      }
-
-      try {
-        const data = await voucherApi.statsOverview();
-        setOverview(data);
-        setAuthError(null);
-      } catch {
-        setAuthError('Không thể tải dữ liệu Dashboard. Vui lòng đăng nhập lại.');
-      }
+      const res = await authFetch(`${API_BASE_URL}/vouchers/stats/overview/`);
+      const data = await res.json();
+      setOverview(data);
     };
     fetchOverview();
   }, []); // Chỉ chạy lại khi dateOverview đổi
@@ -94,23 +86,17 @@ export default function DashboardPage() {
   // --- API: REVENUE CHART (XỬ LÝ LOGIC ĐẶC BIỆT) ---
   useEffect(() => {
     const fetchChart = async () => {
-      if (!authApi.getAccessToken()) {
-        return;
-      }
+      // Khởi tạo URL cơ bản
+      let url = `${API_BASE_URL}/vouchers/stats/revenue-chart/?group_by=${chartGroupBy}`;
 
-      const params: { group_by: string; start_date?: string; end_date?: string } = { group_by: chartGroupBy };
-
+      // Nếu là day, mới nối thêm start_date và end_date
       if (chartGroupBy === "day" && dateChart.from && dateChart.to) {
-        params.start_date = dateChart.from;
-        params.end_date = dateChart.to;
+        url += `&start_date=${dateChart.from}&end_date=${dateChart.to}`;
       }
 
-      try {
-        const data = await voucherApi.statsRevenueChart(params);
-        setChart(data.chart || []);
-      } catch {
-        setAuthError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
-      }
+      const res = await authFetch(url);
+      const data = await res.json();
+      setChart(data.chart || []);
     };
     fetchChart();
   }, [chartGroupBy, dateChart]); // Chạy lại khi group_by hoặc dateChart đổi
@@ -118,22 +104,11 @@ export default function DashboardPage() {
   // --- API: TOP VOUCHERS ---
   useEffect(() => {
     const fetchTopVouchers = async () => {
-      if (!authApi.getAccessToken()) {
-        return;
-      }
-
       if (!dateTop.from || !dateTop.to) return;
-
-      try {
-        const data = await voucherApi.topVouchers({
-          start_date: dateTop.from,
-          end_date: dateTop.to,
-          limit: 5,
-        });
-        setTopVouchers(data.top_vouchers || { most_used: [], highest_revenue: [] });
-      } catch {
-        setAuthError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
-      }
+      const url = `${API_BASE_URL}/vouchers/stats/top-vouchers/?start_date=${dateTop.from}&end_date=${dateTop.to}&limit=5`;
+      const res = await authFetch(url);
+      const data = await res.json();
+      setTopVouchers(data.top_vouchers || { most_used: [], highest_revenue: [] });
     };
     fetchTopVouchers();
   }, [dateTop]);
@@ -141,22 +116,11 @@ export default function DashboardPage() {
   // --- API: PERFORMANCE ---
   useEffect(() => {
     const fetchPerformance = async () => {
-      if (!authApi.getAccessToken()) {
-        return;
-      }
-
       if (!datePerformance.from || !datePerformance.to) return;
-
-      try {
-        const data = await voucherApi.performance({
-          start_date: datePerformance.from,
-          end_date: datePerformance.to,
-          ordering: '-usage_count',
-        });
-        setPerformance(data.results || []);
-      } catch {
-        setAuthError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
-      }
+      const url = `${API_BASE_URL}/vouchers/stats/performance/?start_date=${datePerformance.from}&end_date=${datePerformance.to}&ordering=-usage_count`;
+      const res = await authFetch(url);
+      const data = await res.json();
+      setPerformance(data.results || []);
     };
     fetchPerformance();
   }, [datePerformance]);
@@ -166,14 +130,6 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <h2 className="text-3xl font-bold tracking-tight">Thống kê Voucher</h2>
       </div>
-
-      {authError && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="py-4 text-sm text-red-700">
-            {authError}
-          </CardContent>
-        </Card>
-      )}
 
       {/* --- PHẦN 1: OVERVIEW CARDS --- */}
       <div className="space-y-4">
@@ -411,7 +367,11 @@ export default function DashboardPage() {
             <TableBody>
               {/* Lặp qua state performance */}
               {performance?.map((item: any) => (
-                <TableRow key={item.voucher_id}>
+                <TableRow
+                  key={item.voucher_id}
+                  className="cursor-pointer hover:bg-slate-100"
+                  onClick={() => navigate(`/admin/vouchers/${item.voucher_id}/recipients`)}
+                >
                   <TableCell>
                     <div className="font-medium">{item.code}</div>
                     <div className="text-xs text-muted-foreground">{item.title}</div>

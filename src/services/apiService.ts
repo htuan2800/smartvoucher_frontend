@@ -1,150 +1,54 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
-
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-
-const ACCESS_TOKEN_KEY = 'access_token'
-const REFRESH_TOKEN_KEY = 'refresh_token'
+export const API_BASE_URL = '/api';
 
 type LoginPayload = {
-	username: string
-	password: string
-}
+  username: string;
+  password: string;
+};
 
 type TokenResponse = {
-	access: string
-	refresh: string
-}
+  access: string;
+  refresh: string;
+};
 
-type RefreshResponse = {
-	access: string
-	refresh?: string
-}
+export const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('access_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
-type RetryableRequestConfig = InternalAxiosRequestConfig & {
-	_retry?: boolean
-}
-
-const isBrowser = typeof window !== 'undefined'
-
-const getAccessToken = () => (isBrowser ? localStorage.getItem(ACCESS_TOKEN_KEY) : null)
-const getRefreshToken = () => (isBrowser ? localStorage.getItem(REFRESH_TOKEN_KEY) : null)
-
-const saveTokens = (tokens: { access: string; refresh?: string }) => {
-	if (!isBrowser) return
-
-	localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access)
-	if (tokens.refresh) {
-		localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh)
-	}
-}
-
-const clearTokens = () => {
-	if (!isBrowser) return
-	localStorage.removeItem(ACCESS_TOKEN_KEY)
-	localStorage.removeItem(REFRESH_TOKEN_KEY)
-}
-
-const api = axios.create({
-	baseURL: API_BASE_URL,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-})
-
-let refreshPromise: Promise<string> | null = null
-
-const refreshAccessToken = async () => {
-	if (refreshPromise) {
-		return refreshPromise
-	}
-
-	const refresh = getRefreshToken()
-	if (!refresh) {
-		throw new Error('Missing refresh token')
-	}
-
-	refreshPromise = axios
-		.post<RefreshResponse>(`${API_BASE_URL}/api/users/refresh/`, { refresh })
-		.then((res) => {
-			const nextAccess = res.data.access
-			saveTokens({ access: nextAccess, refresh: res.data.refresh })
-			return nextAccess
-		})
-		.finally(() => {
-			refreshPromise = null
-		})
-
-	return refreshPromise
-}
-
-api.interceptors.request.use((config) => {
-	const token = getAccessToken()
-	if (token) {
-		config.headers.Authorization = `Bearer ${token}`
-	}
-	return config
-})
-
-api.interceptors.response.use(
-	(response) => response,
-	async (error: AxiosError) => {
-		const originalRequest = error.config as RetryableRequestConfig | undefined
-		const requestUrl = originalRequest?.url || ''
-
-		const shouldSkipRefresh = requestUrl.includes('/api/users/login/') || requestUrl.includes('/api/users/refresh/')
-
-		if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !shouldSkipRefresh) {
-			originalRequest._retry = true
-
-			try {
-				const newAccessToken = await refreshAccessToken()
-				originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
-				return api(originalRequest)
-			} catch {
-				clearTokens()
-				return Promise.reject(error)
-			}
-		}
-
-		return Promise.reject(error)
-	},
-)
+export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...getAuthHeaders(),
+    ...((options.headers as Record<string, string>) || {}),
+  };
+  return fetch(url, { ...options, headers });
+};
 
 export const authApi = {
-	async login(payload: LoginPayload) {
-		const response = await api.post<TokenResponse>('/api/users/login/', payload)
-		saveTokens(response.data)
-		return response.data
-	},
-	logout() {
-		clearTokens()
-	},
-	getAccessToken,
-	getRefreshToken,
-}
+  async login(payload: LoginPayload): Promise<TokenResponse> {
+    const response = await fetch(`${API_BASE_URL}/users/login/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-export const userApi = {
-	me: async () => (await api.get('/api/users/me/')).data,
-	staff: async () => (await api.get('/api/users/staff/')).data,
-	customers: async () => (await api.get('/api/users/customers/')).data,
-	permissions: async () => (await api.get('/api/users/permissions/')).data,
-}
+    if (!response.ok) {
+      throw new Error('Login failed');
+    }
 
-export const orderApi = {
-	sync: async (payload: unknown) => (await api.post('/api/orders/sync/', payload)).data,
-	cancel: async (payload: unknown) => (await api.post('/api/orders/cancel/', payload)).data,
-}
-
-export const voucherApi = {
-	apply: async (payload: unknown) => (await api.post('/api/vouchers/apply/', payload)).data,
-	confirm: async (payload: unknown) => (await api.post('/api/vouchers/confirm/', payload)).data,
-	statsOverview: async () => (await api.get('/api/vouchers/stats/overview/')).data,
-	statsRevenueChart: async (params: { group_by: string; start_date?: string; end_date?: string }) =>
-		(await api.get('/api/vouchers/stats/revenue-chart/', { params })).data,
-	topVouchers: async (params: { start_date: string; end_date: string; limit?: number }) =>
-		(await api.get('/api/vouchers/stats/top-vouchers/', { params })).data,
-	performance: async (params: { start_date: string; end_date: string; ordering?: string }) =>
-		(await api.get('/api/vouchers/stats/performance/', { params })).data,
-}
-
-export default api
+    const data = (await response.json()) as TokenResponse;
+    localStorage.setItem('access_token', data.access);
+    localStorage.setItem('refresh_token', data.refresh);
+    return data;
+  },
+  logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  },
+  getAccessToken() {
+    return localStorage.getItem('access_token');
+  },
+  getRefreshToken() {
+    return localStorage.getItem('refresh_token');
+  },
+};

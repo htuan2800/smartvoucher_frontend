@@ -12,7 +12,6 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
-  const [currentPath, setCurrentPath] = useState(location.pathname)
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => ({

@@ -17,6 +17,7 @@ interface HeaderProps {
 }
 const Header = ( { sidebarOpen, setSidebarOpen, setMobileMenuOpen }: HeaderProps) => {
   const [notifications] = useState(0)
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(true)}>
@@ -26,7 +27,7 @@ const Header = ( { sidebarOpen, setSidebarOpen, setMobileMenuOpen }: HeaderProps
             <PanelLeft className="h-5 w-5" />
           </Button>
           <div className="flex flex-1 items-center justify-between">
-            <h1 className="text-xl font-semibold">Designali Creative</h1>
+            <h1 className="text-xl font-semibold">SmartVoucher Admin</h1>
             <div className="flex items-center gap-3">
               <TooltipProvider>
                 <Tooltip>
@@ -68,7 +69,7 @@ const Header = ( { sidebarOpen, setSidebarOpen, setMobileMenuOpen }: HeaderProps
 
               <Avatar className="h-9 w-9 border-2 border-primary">
                 <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarFallback>AD</AvatarFallback>
               </Avatar>
             </div>
           </div>

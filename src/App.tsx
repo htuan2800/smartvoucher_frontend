@@ -6,15 +6,27 @@ import LoginPage from './pages/Admin/LoginPage'
 import VoucherListPage from './pages/Admin/Vouchers/VoucherListPage'
 import VoucherRecipientsPage from './pages/Admin/Vouchers/VoucherRecipientsPage'
 import StaffListPage from './pages/Admin/Staffs/StaffListPage'
+import VoucherCreatePage from './pages/Admin/Vouchers/VoucherCreatePage'
+import HomePage from './pages/Public/HomePage'
 import { authApi } from './services/apiService'
 
 function RequireAdminAuth() {
   return authApi.getAccessToken() ? <Outlet /> : <Navigate to="/admin/login" replace />
 }
 
+function AdminPlaceholderPage({ title }: { title: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center p-8">
+      <h1 className="text-2xl font-bold mb-2">{title}</h1>
+      <p className="text-muted-foreground">Trang này đang được phát triển.</p>
+    </div>
+  )
+}
+
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<HomePage />} />
       <Route path="/admin/login" element={<LoginPage />} />
       <Route element={<RequireAdminAuth />}>
         <Route
@@ -23,11 +35,15 @@ function AppRoutes() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="vouchers/list" element={<VoucherListPage />} />
+          <Route path="vouchers/create" element={<VoucherCreatePage />} />
           <Route path="vouchers/:voucherId/recipients" element={<VoucherRecipientsPage />} />
           <Route path="staffs/list" element={<StaffListPage />} />
+          <Route path="customers/list" element={<AdminPlaceholderPage title="Danh sách khách hàng" />} />
+          <Route path="settings" element={<AdminPlaceholderPage title="Cài đặt hệ thống" />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
       </Route>
-      <Route path="/" element={<Navigate to="/admin" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

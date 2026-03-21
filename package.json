@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e:auth": "node tests/e2e/auth.test.js",
+    "test:e2e:vouchers": "node tests/e2e/vouchers.test.js",
+    "test:e2e:customers": "node tests/e2e/customers.test.js",
+    "test:e2e:staffs": "node tests/e2e/staffs.test.js",
+    "test:e2e": "npm run test:e2e:auth && npm run test:e2e:vouchers && npm run test:e2e:customers && npm run test:e2e:staffs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
@@ -42,6 +47,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "puppeteer": "^24.39.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1"

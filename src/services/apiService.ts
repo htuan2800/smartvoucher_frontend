@@ -80,6 +80,7 @@ export const orderApi = {
 };
 
 export const voucherApi = {
+  get: async (id: number | string) => (await api.get(`/vouchers/${id}/`)).data,
   apply: async (payload: unknown) => (await api.post('/vouchers/apply/', payload)).data,
   confirm: async (payload: unknown) => (await api.post('/vouchers/confirm/', payload)).data,
   statsOverview: async () => (await api.get('/vouchers/stats/overview/')).data,
@@ -93,6 +94,10 @@ export const voucherApi = {
   create: async (payload: unknown) => (await api.post('/vouchers/create/', payload)).data,
   update: async (id: number, payload: unknown) => (await api.patch(`/vouchers/${id}/`, payload)).data,
   delete: async (id: number) => (await api.delete(`/vouchers/${id}/`)).data,
+};
+
+export const customerApi = {
+  list: async () => (await api.get('/users/customers/')).data,
 };
 
 export default api;

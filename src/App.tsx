@@ -7,6 +7,9 @@ import VoucherListPage from './pages/Admin/Vouchers/VoucherListPage'
 import VoucherRecipientsPage from './pages/Admin/Vouchers/VoucherRecipientsPage'
 import StaffListPage from './pages/Admin/Staffs/StaffListPage'
 import VoucherCreatePage from './pages/Admin/Vouchers/VoucherCreatePage'
+import VoucherEditPage from './pages/Admin/Vouchers/VoucherEditPage'
+import VoucherDetailPage from './pages/Admin/Vouchers/VoucherDetailPage'
+import CustomerListPage from './pages/Admin/Customers/CustomerListPage'
 import HomePage from './pages/Public/HomePage'
 import { authApi } from './services/apiService'
 
@@ -36,9 +39,11 @@ function AppRoutes() {
           <Route index element={<DashboardPage />} />
           <Route path="vouchers/list" element={<VoucherListPage />} />
           <Route path="vouchers/create" element={<VoucherCreatePage />} />
+          <Route path="vouchers/:voucherId/edit" element={<VoucherEditPage />} />
+          <Route path="vouchers/:voucherId/detail" element={<VoucherDetailPage />} />
           <Route path="vouchers/:voucherId/recipients" element={<VoucherRecipientsPage />} />
           <Route path="staffs/list" element={<StaffListPage />} />
-          <Route path="customers/list" element={<AdminPlaceholderPage title="Danh sách khách hàng" />} />
+          <Route path="customers/list" element={<CustomerListPage />} />
           <Route path="settings" element={<AdminPlaceholderPage title="Cài đặt hệ thống" />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>

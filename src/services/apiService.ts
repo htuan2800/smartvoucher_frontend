@@ -1,4 +1,25 @@
+import axios from 'axios';
+
 export const API_BASE_URL = '/api';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+// Add a request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 type LoginPayload = {
   username: string;
@@ -52,3 +73,31 @@ export const authApi = {
     return localStorage.getItem('refresh_token');
   },
 };
+
+export const orderApi = {
+  sync: async (payload: unknown) => (await api.post('/orders/sync/', payload)).data,
+  cancel: async (payload: unknown) => (await api.post('/orders/cancel/', payload)).data,
+};
+
+export const voucherApi = {
+  get: async (id: number | string) => (await api.get(`/vouchers/${id}/`)).data,
+  apply: async (payload: unknown) => (await api.post('/vouchers/apply/', payload)).data,
+  confirm: async (payload: unknown) => (await api.post('/vouchers/confirm/', payload)).data,
+  statsOverview: async () => (await api.get('/vouchers/stats/overview/')).data,
+  statsRevenueChart: async (params: { group_by: string; start_date?: string; end_date?: string }) =>
+    (await api.get('/vouchers/stats/revenue-chart/', { params })).data,
+  topVouchers: async (params: { start_date: string; end_date: string; limit?: number }) =>
+    (await api.get('/vouchers/stats/top-vouchers/', { params })).data,
+  performance: async (params: { start_date: string; end_date: string; ordering?: string }) =>
+    (await api.get('/vouchers/stats/performance/', { params })).data,
+  list: async () => (await api.get('/vouchers/')).data,
+  create: async (payload: unknown) => (await api.post('/vouchers/create/', payload)).data,
+  update: async (id: number, payload: unknown) => (await api.patch(`/vouchers/${id}/`, payload)).data,
+  delete: async (id: number) => (await api.delete(`/vouchers/${id}/`)).data,
+};
+
+export const customerApi = {
+  list: async () => (await api.get('/users/customers/')).data,
+};
+
+export default api;

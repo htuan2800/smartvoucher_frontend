@@ -33,4 +33,10 @@ export const sidebarItems: SidebarItem[] = [
     icon: <Users />,
     path: "/admin/staffs/list",  
   },
+  {
+    title: "Khách hàng",
+    icon: <Users />,
+    path: "/admin/customers/list",
+  },
+
 ]

@@ -11,6 +11,8 @@ import VoucherEditPage from './pages/Admin/Vouchers/VoucherEditPage'
 import VoucherDetailPage from './pages/Admin/Vouchers/VoucherDetailPage'
 import CustomerListPage from './pages/Admin/Customers/CustomerListPage'
 import HomePage from './pages/Public/HomePage'
+import RegisterPage from './pages/Public/RegisterPage'
+import CustomerLoginPage from './pages/Public/CustomerLoginPage'
 import { authApi } from './services/apiService'
 
 function RequireAdminAuth() {
@@ -30,6 +32,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/login" element={<CustomerLoginPage />} />
       <Route path="/admin/login" element={<LoginPage />} />
       <Route element={<RequireAdminAuth />}>
         <Route

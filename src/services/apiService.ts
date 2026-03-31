@@ -62,6 +62,23 @@ export const authApi = {
     localStorage.setItem('refresh_token', data.refresh);
     return data;
   },
+  async register(payload: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/users/register/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        let errorMsg = 'Đăng ký thất bại';
+        try {
+            const errData = await response.json();
+            errorMsg = errData.message || errData.error || errorMsg;
+        } catch { }
+        throw new Error(errorMsg);
+    }
+    return response.json();
+  },
   logout() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');

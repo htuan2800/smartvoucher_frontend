@@ -2,6 +2,7 @@ import React from "react"
 import {
   LayoutDashboard,
   Percent,
+  UserCog,
   Users,
 } from "lucide-react"
 
@@ -30,7 +31,7 @@ export const sidebarItems: SidebarItem[] = [
   },
   {
     title: "Nhân viên",
-    icon: <Users />,
+    icon: <UserCog />,
     path: "/admin/staffs/list",  
   },
   {

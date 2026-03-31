@@ -1,46 +1,45 @@
 import { motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, CheckCircle2, ClipboardCheck, Gift, ShieldCheck, Sparkles, TicketPercent, Users2 } from 'lucide-react'
+import { 
+  BarChart3, 
+  CheckCircle2, 
+  Gift, 
+  Sparkles, 
+  ArrowRight,
+  TrendingUp,
+  ShieldCheck,
+  Zap,
+  Globe,
+  Rocket
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { authApi, voucherApi } from '@/services/apiService'
+import { voucherApi } from '@/services/apiService'
 
 const featureItems = [
   {
-    title: 'Tao voucher theo chien dich',
-    description: 'Thiet lap quy tac giam gia, dieu kien ap dung va so luong voucher theo tung nhom khach hang.',
-    icon: TicketPercent,
+    title: 'Marketing Flow Automation',
+    description: 'Biến ý tưởng thành chiến dịch trong tích tắc với chuỗi quy tắc phân bổ tự động và thông minh.',
+    icon: Rocket,
+    color: 'from-cyan-400 to-blue-600',
+    shadow: 'shadow-cyan-500/20',
+    delay: 0.1
   },
   {
-    title: 'Theo doi hieu suat theo thoi gian thuc',
-    description: 'Dashboard cap nhat luot su dung, doanh thu tac dong va chi phi khuyen mai de ra quyet dinh nhanh.',
+    title: 'Data-Driven Intelligence',
+    description: 'Vượt xa những con số cơ bản. Thấu hiểu hành vi khách hàng và tối ưu hóa từng đồng ngân sách marketing.',
     icon: BarChart3,
+    color: 'from-indigo-400 to-purple-600',
+    shadow: 'shadow-indigo-500/20',
+    delay: 0.2
   },
   {
-    title: 'Dong bo don hang tu he thong ban',
-    description: 'Ket noi va dong bo du lieu don hang de danh gia voucher theo tung kenh ban va tung khung gio.',
-    icon: ClipboardCheck,
-  },
-  {
-    title: 'Bao mat vai tro admin ro rang',
-    description: 'Quan ly token, phan quyen nhan vien va theo doi lich su hanh dong trong khu vuc quan tri.',
+    title: 'Elite Security Core',
+    description: 'Bảo vệ lợi thế cạnh tranh với hệ thống chống gian lận đa tầng và mã hóa token chuẩn quốc tế.',
     icon: ShieldCheck,
-  },
-]
-
-const processItems = [
-  {
-    title: 'Buoc 1: Khoi tao chuong trinh',
-    detail: 'Tao ma voucher, thoi gian hieu luc va ngan sach khuyen mai.',
-  },
-  {
-    title: 'Buoc 2: Phan phoi thong minh',
-    detail: 'Gui voucher dung nhom khach hang dua tren hanh vi va lich su mua.',
-  },
-  {
-    title: 'Buoc 3: Toi uu lien tuc',
-    detail: 'Theo doi data va dieu chinh chien dich ngay trong admin dashboard.',
+    color: 'from-emerald-400 to-teal-600',
+    shadow: 'shadow-emerald-500/20',
+    delay: 0.3
   },
 ]
 
@@ -50,268 +49,255 @@ type OverviewStats = {
   usage_rate_percent?: number
 }
 
-type TopVoucher = {
-  voucher_id: number
-  title: string
-  code: string
-  usage_count?: number
-}
-
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
-const getCurrentMonthRange = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const first = new Date(year, month, 1)
-  const last = new Date(year, month + 1, 0)
-
-  const toIso = (date: Date) => {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-  }
-
-  return {
-    start: toIso(first),
-    end: toIso(last),
-  }
-}
-
 export default function HomePage() {
-  const isLoggedIn = Boolean(authApi.getAccessToken())
-  const [loadingStats, setLoadingStats] = useState(false)
-  const [statsError, setStatsError] = useState<string | null>(null)
   const [overview, setOverview] = useState<OverviewStats | null>(null)
-  const [topVouchers, setTopVouchers] = useState<TopVoucher[]>([])
 
   useEffect(() => {
     let isMounted = true
-
     const fetchPublicStats = async () => {
-      setLoadingStats(true)
-      setStatsError(null)
-
       try {
-        const range = getCurrentMonthRange()
-        const [overviewData, topData] = await Promise.all([
-          voucherApi.statsOverview(),
-          voucherApi.topVouchers({
-            start_date: range.start,
-            end_date: range.end,
-            limit: 3,
-          }),
-        ])
-
-        if (!isMounted) return
-        setOverview(overviewData)
-        setTopVouchers(topData?.top_vouchers?.most_used || [])
-      } catch {
-        if (!isMounted) return
-        setStatsError('Khong the tai du lieu realtime. Vui long dang nhap admin de xem day du.')
-      } finally {
-        if (isMounted) {
-          setLoadingStats(false)
-        }
-      }
+        const overviewData = await voucherApi.statsOverview()
+        if (isMounted) setOverview(overviewData)
+      } catch { /* Fail silently */ }
     }
-
     fetchPublicStats()
-
-    return () => {
-      isMounted = false
-    }
+    return () => { isMounted = false }
   }, [])
 
   const heroStats = useMemo(
     () => [
       {
-        label: 'Voucher da su dung hom nay',
-        value: overview?.total_used?.toLocaleString('vi-VN') || '1,284',
+        label: 'Voucher Đã Dùng',
+        value: overview?.total_used?.toLocaleString('vi-VN') || '1,492',
         icon: CheckCircle2,
-        color: 'text-emerald-600',
+        color: 'text-emerald-400',
+        glow: 'bg-emerald-500/20',
+        border: 'border-emerald-500/20'
       },
       {
-        label: 'Doanh thu tac dong',
-        value: typeof overview?.net_revenue === 'number' ? formatCurrency(overview.net_revenue) : '620M VND',
-        icon: BarChart3,
-        color: 'text-cyan-700',
+        label: 'Doanh Thu Tác Động',
+        value: typeof overview?.net_revenue === 'number' ? formatCurrency(overview.net_revenue) : '1.2B VND',
+        icon: TrendingUp,
+        color: 'text-cyan-400',
+        glow: 'bg-cyan-500/20',
+        border: 'border-cyan-500/20'
       },
       {
-        label: 'Ty le su dung voucher',
-        value: typeof overview?.usage_rate_percent === 'number' ? `${overview.usage_rate_percent}%` : '42%',
-        icon: Users2,
-        color: 'text-amber-600',
+        label: 'Tỷ Lệ Chuyển Đổi',
+        value: typeof overview?.usage_rate_percent === 'number' ? `${overview.usage_rate_percent}%` : '64.2%',
+        icon: Zap,
+        color: 'text-indigo-400',
+        glow: 'bg-indigo-500/20',
+        border: 'border-indigo-500/20'
       },
     ],
     [overview],
   )
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_20%_10%,#d9f3ff_0%,#eff8ff_34%,#fffdf6_70%)] text-slate-900">
-      <div className="pointer-events-none absolute inset-0 opacity-70">
-        <div className="absolute -left-16 top-24 h-56 w-56 rounded-full bg-cyan-200/70 blur-3xl" />
-        <div className="absolute right-0 top-8 h-64 w-64 rounded-full bg-amber-200/60 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sky-200/60 blur-3xl" />
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#020617] text-white font-sans selection:bg-cyan-500/30">
+      {/* Premium Aurora Background */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[10%] -left-[10%] h-[60%] w-[60%] rounded-full bg-cyan-600/10 blur-[130px]" 
+        />
+        <motion.div 
+          animate={{ x: [0, -40, 0], y: [0, 60, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-[-10%] right-[-10%] h-[50%] w-[50%] rounded-full bg-indigo-600/10 blur-[130px]" 
+        />
+        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]" />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-12 pt-8 md:px-10 md:pt-12">
+      <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
+        {/* Navigation */}
         <motion.header
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="flex items-center justify-between"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="flex items-center justify-between py-10"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
-              <Gift className="h-5 w-5" />
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="relative h-11 w-11 flex items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-xl shadow-cyan-900/40 group-hover:scale-110 transition-transform">
+              <Gift className="h-6 w-6 text-white" />
+              <div className="absolute inset-0 rounded-2xl bg-white/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <div>
-              <p className="text-xs font-semibold tracking-[0.2em] text-slate-600">SMART VOUCHER</p>
-              <p className="text-sm font-semibold">Voucher Management Platform</p>
+              <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">SmartVoucher</h2>
+              <div className="flex items-center gap-1.5 opacity-60">
+                <Globe className="w-2.5 h-2.5 text-cyan-500" />
+                <p className="text-[10px] uppercase font-bold tracking-widest">Enterprise Elite</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button asChild variant="outline" className="bg-white/80">
-              <Link to="/admin/login">Admin Login</Link>
+          <div className="flex gap-4">
+            <Button asChild size="lg" className="h-11 px-6 bg-transparent border border-white/20 text-white hover:bg-white/10 transition-all duration-300 font-bold rounded-full">
+              <Link to="/register">Đăng ký thành viên</Link>
             </Button>
-            {isLoggedIn && (
-              <Button asChild>
-                <Link to="/admin">Mo Dashboard</Link>
-              </Button>
-            )}
+            <Button asChild size="lg" className="h-11 px-6 bg-white text-slate-900 hover:bg-cyan-500 hover:text-white transition-all duration-300 font-bold rounded-full group">
+              <Link to="/admin/login" className="flex items-center gap-2">Admin Login <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></Link>
+            </Button>
           </div>
         </motion.header>
 
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.1 }}
-          className="grid items-center gap-6 rounded-3xl border border-white/80 bg-white/80 p-6 shadow-lg backdrop-blur md:grid-cols-[1.2fr_0.8fr] md:p-8"
-        >
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800">
-              <Sparkles className="h-3.5 w-3.5" />
-              Nen tang quan li voucher thong minh
-            </p>
-            <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-5xl">
-              Tang doanh thu tu khuyen mai, khong tang chi phi lang phi.
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm text-slate-600 md:text-base">
-              Smart Voucher giup doanh nghiep tao, theo doi va toi uu voucher tren cung mot man hinh quan tri.
-              Team marketing thay duoc hieu qua ngay, team van hanh giam loi khi ap dung khuyen mai.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="shadow-sm">
-                <Link to="/admin/login">Dang nhap quan tri</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="bg-white">
-                <Link to="/admin">Xem dashboard mau</Link>
+        {/* Hero Section */}
+        <section className="pt-16 pb-24 text-center max-w-4xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8"
+          >
+            <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Next-Gen Management Platform</span>
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-6xl md:text-8xl font-black tracking-tight leading-[0.95] mb-8"
+          >
+            Tái định nghĩa<br />
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 bg-clip-text text-transparent italic">Kinh tế Voucher.</span>
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto mb-12"
+          >
+            Khai phá sức mạnh của phân phối thông minh, phân tích dữ liệu chuyên sâu và bảo mật cấp doanh nghiệp. Nâng tầm trải nghiệm khách hàng với hệ thống ưu đãi thế hệ mới.
+          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center justify-center gap-4"
+          >
+            <div className="relative inline-block group">
+              <div className="absolute inset-0 bg-cyan-600/50 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50 group-hover:opacity-100" />
+              <Button asChild size="lg" className="relative h-16 px-10 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xl rounded-2xl shadow-2xl transition-all">
+                <Link to="/register">Đăng ký Hội Viên</Link>
               </Button>
             </div>
-            {loadingStats && <p className="mt-3 text-xs text-slate-500">Dang dong bo du lieu tu backend...</p>}
-            {statsError && <p className="mt-3 text-xs text-amber-700">{statsError}</p>}
-          </div>
+            <Button asChild size="lg" variant="outline" className="h-16 px-10 bg-white/5 hover:bg-white/10 text-white border-white/10 font-black text-xl rounded-2xl transition-all">
+               <Link to="/admin/login">Dành cho Admin</Link>
+            </Button>
+          </motion.div>
+        </section>
 
-          <div className="grid gap-3">
-            {heroStats.map((item) => {
-              const Icon = item.icon
-              return (
-                <Card key={item.label} className="border-slate-200/80 bg-white/90 py-3">
-                  <CardContent className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500">{item.label}</p>
-                      <p className="text-2xl font-semibold">{item.value}</p>
-                    </div>
-                    <Icon className={`h-6 w-6 ${item.color}`} />
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.2 }}
-          className="grid gap-4 md:grid-cols-2"
-        >
-          {featureItems.map((item, index) => {
+        {/* Dynamic Stats Section */}
+        <section className="pb-32 grid md:grid-cols-3 gap-8">
+          {heroStats.map((item, idx) => {
             const Icon = item.icon
             return (
               <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
+                key={item.label}
+                initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.25 + index * 0.07 }}
+                transition={{ delay: 0.4 + idx * 0.1 }}
+                whileHover={{ y: -10 }}
+                className={`relative p-8 rounded-[2.5rem] border ${item.border} bg-white/[0.03] backdrop-blur-2xl group transition-all duration-500`}
               >
-                <Card className="h-full border-white/80 bg-white/85 py-4 shadow-sm backdrop-blur">
-                  <CardContent>
-                    <div className="mb-3 inline-flex rounded-xl bg-slate-100 p-2.5 text-slate-800">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <h3 className="text-base font-semibold">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
-                  </CardContent>
-                </Card>
+                <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Icon className="w-24 h-24" />
+                </div>
+                
+                <div className={`inline-flex p-4 rounded-2xl ${item.glow} mb-8 shadow-inner`}>
+                  <Icon className={`w-8 h-8 ${item.color} drop-shadow-[0_0_8px_currentColor]`} />
+                </div>
+                
+                <div className="space-y-1">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-300 transition-colors">{item.label}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-4xl font-black tracking-tight text-white">{item.value}</p>
+                    <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                  </div>
+                </div>
+                
+                <div className="mt-8 h-px w-0 group-hover:w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent transition-all duration-700" />
               </motion.div>
             )
           })}
-        </motion.section>
+        </section>
 
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.3 }}
-          className="rounded-3xl border border-slate-200/80 bg-white/90 p-6 md:p-8"
-        >
-          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Quy trinh van hanh de theo doi</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {processItems.map((step, idx) => (
-              <div key={step.title} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Stage {idx + 1}</p>
-                <h3 className="mt-2 text-base font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm text-slate-600">{step.detail}</p>
+        {/* Bento-Inspired Feature Section */}
+        <section className="pb-40">
+          <div className="text-center mb-20">
+            <h2 className="text-3xl font-black text-white mb-4 tracking-tight uppercase">Feature Ecosystem</h2>
+            <div className="h-1 w-12 bg-cyan-600 mx-auto rounded-full" />
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {featureItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: item.delay }}
+                  className={`group relative p-10 rounded-[3rem] bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 hover:border-white/20 hover:bg-white/[0.05] transition-all duration-500 ${item.shadow} hover:shadow-2xl`}
+                >
+                  <div className={`mb-10 h-16 w-16 flex items-center justify-center rounded-3xl bg-gradient-to-br ${item.color} shadow-lg relative overflow-hidden group-hover:rotate-6 transition-transform`}>
+                    <Icon className="h-8 w-8 text-white relative z-10" />
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform" />
+                  </div>
+                  
+                  <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors uppercase tracking-tight">{item.title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed group-hover:text-slate-300 transition-colors">{item.description}</p>
+                  
+                  <div className="mt-10 flex items-center gap-2 text-cyan-500 font-bold text-xs uppercase cursor-pointer opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all">
+                    Learn More <ArrowRight className="w-3 h-3" />
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* Minimal Footer */}
+        <footer className="py-20 border-t border-white/5">
+           <div className="flex flex-col md:flex-row justify-between items-center gap-10">
+              <div className="space-y-4 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                   <div className="h-2 w-2 rounded-full bg-cyan-500" />
+                   <span className="font-black text-xl text-white tracking-tighter uppercase">SmartVoucher</span>
+                </div>
+                <p className="text-[10px] uppercase font-black tracking-[0.4em] text-slate-600">Premium Management Systems</p>
               </div>
-            ))}
-          </div>
-        </motion.section>
+              
+              <div className="flex flex-wrap justify-center gap-12 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                 <a href="#" className="hover:text-cyan-400 transition-all">Architecture</a>
+                 <a href="#" className="hover:text-cyan-400 transition-all">Privacy</a>
+                 <a href="#" className="hover:text-cyan-400 transition-all">Source</a>
+              </div>
 
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.35 }}
-          className="rounded-3xl border border-slate-200/80 bg-white/90 p-6 md:p-8"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Top voucher thang nay</h2>
-            <p className="text-xs text-slate-500">Nguon: /api/vouchers/stats/top-vouchers/</p>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            {topVouchers.length > 0 ? (
-              topVouchers.map((voucher) => (
-                <Card key={voucher.voucher_id} className="border-slate-200/80 bg-white py-3">
-                  <CardContent>
-                    <p className="text-xs text-slate-500">{voucher.code}</p>
-                    <h3 className="mt-1 text-base font-semibold">{voucher.title}</h3>
-                    <p className="mt-2 text-sm text-slate-600">Luot su dung: {voucher.usage_count || 0}</p>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p className="text-sm text-slate-600 md:col-span-3">
-                Chua co du lieu top voucher. Dang nhap admin de cap nhat va xem chi tiet.
-              </p>
-            )}
-          </div>
-        </motion.section>
+              <div className="px-6 py-2 rounded-full border border-white/10 bg-white/5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                © 2024 VUE STUDIO X
+              </div>
+           </div>
+        </footer>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.15; transform: scale(1); }
+          50% { opacity: 0.3; transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 15s infinite ease-in-out;
+        }
+      `}} />
     </div>
   )
 }

@@ -81,7 +81,7 @@ export default function HomePage() {
     let isMounted = true
     const fetchPublicStats = async () => {
       try {
-        const overviewData = await voucherApi.statsOverview()
+        const overviewData = await voucherApi.statsOverviewPublic()
         if (isMounted) setOverview(overviewData)
       } catch { /* Fail silently */ }
     }

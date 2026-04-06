@@ -101,6 +101,7 @@ export const voucherApi = {
   apply: async (payload: unknown) => (await api.post('/vouchers/apply/', payload)).data,
   confirm: async (payload: unknown) => (await api.post('/vouchers/confirm/', payload)).data,
   statsOverview: async () => (await api.get('/vouchers/stats/overview/')).data,
+  statsOverviewPublic: async () => (await api.get('/vouchers/stats/overview/public/')).data,
   statsRevenueChart: async (params: { group_by: string; start_date?: string; end_date?: string }) =>
     (await api.get('/vouchers/stats/revenue-chart/', { params })).data,
   topVouchers: async (params: { start_date: string; end_date: string; limit?: number }) =>

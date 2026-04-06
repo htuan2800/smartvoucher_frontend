@@ -13,10 +13,26 @@ import CustomerListPage from './pages/Admin/Customers/CustomerListPage'
 import HomePage from './pages/Public/HomePage'
 import RegisterPage from './pages/Public/RegisterPage'
 import CustomerLoginPage from './pages/Public/CustomerLoginPage'
-import { authApi } from './services/apiService'
+import { useAuth } from './context/AuthContext'
 
 function RequireAdminAuth() {
-  return authApi.getAccessToken() ? <Outlet /> : <Navigate to="/admin/login" replace />
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    ); 
+  }
+  if (!user) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  if (user.role !== 'admin' && user.role !== 'staff') {
+    return <Navigate to="/" replace />; 
+  }
+
+  return <Outlet />;
 }
 
 function AdminPlaceholderPage({ title }: { title: string }) {

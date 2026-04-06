@@ -1,5 +1,6 @@
 import {
   ChevronDown,
+  LogOut,
   Wand2,
   X,
 } from "lucide-react"
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { sidebarItems } from "./SidebarItem"
+import { useAuth } from "@/context/AuthContext"
 
 interface SidebarProps {
   mobileMenuOpen: boolean;
@@ -18,6 +20,7 @@ interface SidebarProps {
 }
 
 const SidebarMobile = ({ mobileMenuOpen, setMobileMenuOpen, toggleExpanded, isActivePath, handleNavClick, expandedItems }: SidebarProps) => {
+  const { user, logout } = useAuth();
   return (
     <div
       className={cn(
@@ -28,12 +31,12 @@ const SidebarMobile = ({ mobileMenuOpen, setMobileMenuOpen, toggleExpanded, isAc
       <div className="flex h-full flex-col border-r">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <div className="flex aspect-square size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 text-white">
+            <div className="flex aspect-square size-10 items-center justify-center rounded-2xl bg-linear-to-br from-purple-600 to-blue-600 text-white">
               <Wand2 className="size-5" />
             </div>
             <div>
-              <h2 className="font-semibold">Designali</h2>
-              <p className="text-xs text-muted-foreground">Creative Suite</p>
+              <h2 className="font-semibold">{user?.username || ""}</h2>
+              <p className="text-xs text-muted-foreground">{user?.role === "admin" ? "Admin" : "Staff"}</p>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
@@ -96,6 +99,18 @@ const SidebarMobile = ({ mobileMenuOpen, setMobileMenuOpen, toggleExpanded, isAc
             ))}
           </div>
         </ScrollArea>
+
+        <div className="border-t p-3">
+          <div className="space-y-1">
+            <button
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium hover:bg-muted cursor-pointer"
+              onClick={logout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

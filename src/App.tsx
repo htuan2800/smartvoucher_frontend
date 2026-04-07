@@ -15,6 +15,9 @@ import RegisterPage from './pages/Public/RegisterPage'
 import CustomerLoginPage from './pages/Public/CustomerLoginPage'
 import { useAuth } from './context/AuthContext'
 import HomeAdminPage from './pages/Admin/Home/page'
+import ShopPage from './pages/User/HomePage'
+import CartPage from './pages/User/CartPage'
+import CheckoutPage from './pages/User/CheckoutPage'
 
 function RequireAdminAuth() {
   const { user, loading } = useAuth();
@@ -51,6 +54,9 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<CustomerLoginPage />} />
+      <Route path="/shop" element={<ShopPage />} />
+      <Route path="/shop/cart" element={<CartPage />} />
+      <Route path="/shop/checkout" element={<CheckoutPage />} />
       <Route path="/admin/login" element={<LoginPage />} />
       <Route element={<RequireAdminAuth />}>
         <Route

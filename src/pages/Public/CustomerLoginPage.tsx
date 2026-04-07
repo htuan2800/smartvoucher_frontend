@@ -24,7 +24,7 @@ export default function CustomerLoginPage() {
     try {
       await authApi.login({ username, password })
       await fetchMe?.()
-      navigate('/', { replace: true })
+      navigate('/shop', { replace: true })
     } catch {
       setError('Đăng nhập thất bại. Vui lòng kiểm tra tài khoản hoặc mật khẩu.')
     } finally {

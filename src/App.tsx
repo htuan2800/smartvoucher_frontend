@@ -14,6 +14,7 @@ import HomePage from './pages/Public/HomePage'
 import RegisterPage from './pages/Public/RegisterPage'
 import CustomerLoginPage from './pages/Public/CustomerLoginPage'
 import { useAuth } from './context/AuthContext'
+import HomeAdminPage from './pages/Admin/Home/page'
 
 function RequireAdminAuth() {
   const { user, loading } = useAuth();
@@ -56,7 +57,8 @@ function AppRoutes() {
           path="/admin"
           element={<AdminLayout />}
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<HomeAdminPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="vouchers/list" element={<VoucherListPage />} />
           <Route path="vouchers/create" element={<VoucherCreatePage />} />
           <Route path="vouchers/:voucherId/edit" element={<VoucherEditPage />} />

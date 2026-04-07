@@ -223,7 +223,7 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <Button className="w-full h-14 bg-white text-slate-900 hover:bg-cyan-400 hover:text-white font-black text-lg rounded-2xl transition-all shadow-xl hover:shadow-cyan-500/50 flex items-center justify-center gap-2 group">
+                <Button className="w-full h-14 bg-white text-slate-900 hover:bg-cyan-400 hover:text-white font-black text-lg rounded-2xl transition-all shadow-xl hover:shadow-cyan-500/50 flex items-center justify-center gap-2 group" onClick={() => navigate('/shop/checkout')}>
                   Thanh Toán <ArrowLeft className="w-5 h-5 rotate-180 group-hover:translate-x-1 transition-transform" />
                 </Button>
 

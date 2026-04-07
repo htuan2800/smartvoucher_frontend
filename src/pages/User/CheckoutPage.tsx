@@ -103,7 +103,7 @@ export default function CheckoutPage() {
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 lg:px-8 pt-10">
         
-        <button onClick={() => navigate('/cart')} className="group flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors mb-8">
+        <button onClick={() => navigate('/shop/cart')} className="group flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors mb-8">
           <div className="p-2 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </div>

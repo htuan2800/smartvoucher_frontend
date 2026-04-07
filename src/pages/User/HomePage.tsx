@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '@/context/CartContext'
+import { toast } from 'sonner'
 
 // --- MOCK DATA ---
 type Product = {
@@ -30,12 +31,19 @@ type Product = {
 }
 
 const mockProducts: Product[] = [
-    { id: 1, name: 'Kẹo Dẻo Thiên Hà', description: 'Vị trái cây chua ngọt bùng nổ, dẻo mềm tan trong miệng.', price: 25000, type: 'candy', color: 'from-pink-500 to-rose-500' },
-    { id: 2, name: 'Trà Sữa Lượng Tử', description: 'Trà đen đậm vị kết hợp trân châu đường đen trứ danh.', price: 45000, type: 'drink', color: 'from-amber-500 to-orange-600' },
-    { id: 3, name: 'Sô-cô-la Hắc Ám', description: 'Đắng nhẹ, thơm nồng từ 85% cacao nguyên chất.', price: 65000, type: 'candy', color: 'from-slate-700 to-slate-900' },
-    { id: 4, name: 'Nước Tăng Lực Siêu Tốc', description: 'Giải khát tức thì, nạp năng lượng cho ngày dài.', price: 30000, type: 'drink', color: 'from-cyan-400 to-blue-600' },
-    { id: 5, name: 'Kẹo Nổ Tinh Vân', description: 'Trải nghiệm nổ lách tách cực vui nhộn khi ngậm.', price: 15000, type: 'candy', color: 'from-purple-500 to-indigo-500' },
-    { id: 6, name: 'Sinh Tố Sao Băng', description: 'Xoài, dâu tây và việt quất xay nhuyễn mát lạnh.', price: 55000, type: 'drink', color: 'from-emerald-400 to-teal-500' },
+    { id: 1, name: 'Kẹo Dẻo 123', description: 'Vị trái cây chua ngọt bùng nổ, dẻo mềm tan trong miệng.', price: 25000, type: 'candy', color: 'from-pink-500 to-rose-500' },
+    { id: 2, name: 'Trà Sữa 123', description: 'Trà đen đậm vị kết hợp trân châu đường đen trứ danh.', price: 45000, type: 'drink', color: 'from-amber-500 to-orange-600' },
+    { id: 3, name: 'Sô-cô-la 123', description: 'Đắng nhẹ, thơm nồng từ 85% cacao nguyên chất.', price: 65000, type: 'candy', color: 'from-slate-700 to-slate-900' },
+    { id: 4, name: 'Nước Tăng 123', description: 'Giải khát tức thì, nạp năng lượng cho ngày dài.', price: 30000, type: 'drink', color: 'from-cyan-400 to-blue-600' },
+    { id: 5, name: 'Kẹo Nổ 123', description: 'Trải nghiệm nổ lách tách cực vui nhộn khi ngậm.', price: 15000, type: 'candy', color: 'from-purple-500 to-indigo-500' },
+    { id: 6, name: 'Sinh Tố 123', description: 'Xoài, dâu tây và việt quất xay nhuyễn mát lạnh.', price: 55000, type: 'drink', color: 'from-emerald-400 to-teal-500' },
+
+    { id: 7, name: 'Kẹo Dẻo ABC', description: 'Vị trái cây chua ngọt bùng nổ, dẻo mềm tan trong miệng.', price: 25000, type: 'candy', color: 'from-pink-500 to-rose-500' },
+    { id: 8, name: 'Trà Sữa ABC', description: 'Trà đen đậm vị kết hợp trân châu đường đen trứ danh.', price: 45000, type: 'drink', color: 'from-amber-500 to-orange-600' },
+    { id: 9, name: 'Sô-cô-la ABC', description: 'Đắng nhẹ, thơm nồng từ 85% cacao nguyên chất.', price: 65000, type: 'candy', color: 'from-slate-700 to-slate-900' },
+    { id: 10, name: 'Nước Tăng ABC', description: 'Giải khát tức thì, nạp năng lượng cho ngày dài.', price: 30000, type: 'drink', color: 'from-cyan-400 to-blue-600' },
+    { id: 11, name: 'Kẹo Nổ ABC', description: 'Trải nghiệm nổ lách tách cực vui nhộn khi ngậm.', price: 15000, type: 'candy', color: 'from-purple-500 to-indigo-500' },
+    { id: 12, name: 'Sinh Tố ABC', description: 'Xoài, dâu tây và việt quất xay nhuyễn mát lạnh.', price: 55000, type: 'drink', color: 'from-emerald-400 to-teal-500' },
 ]
 
 const formatCurrency = (value: number) => {
@@ -65,7 +73,7 @@ export default function ShopPage() {
     // Hàm xử lý thêm vào giỏ
     const handleAddToCart = (product: any) => {
         addToCart(product);
-        // toast.success(`Đã thêm ${product.name} vào giỏ hàng!`)
+        toast.success(`Đã thêm ${product.name} vào giỏ hàng!`)
     }
 
     // Lọc sản phẩm

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { format } from "date-fns"
-import { ArrowLeft, Ticket, Calendar, Clock, Users, ShoppingCart, Tag, AlertCircle, CheckCircle2, XCircle, Gift, Info } from "lucide-react"
+import { ArrowLeft, Ticket, Calendar, Clock, Users, ShoppingCart, Tag, AlertCircle, CheckCircle2, XCircle, Gift, Info, Mail } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Separator, Skeleton } from "@/components/ui"
@@ -195,6 +195,14 @@ export default function VoucherDetailPage() {
               Mã Code: <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-indigo-600 font-bold">{voucher.code}</span>
             </p>
           </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/admin/vouchers/${voucherId}/recipients`)}>
+            <Users className="w-4 h-4 mr-1" /> Người nhận
+          </Button>
+          <Button variant="outline" size="sm" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50" onClick={() => navigate(`/admin/vouchers/${voucherId}/delivery-logs`)}>
+            <Mail className="w-4 h-4 mr-1" /> Lịch sử Email
+          </Button>
         </div>
       </div>
 

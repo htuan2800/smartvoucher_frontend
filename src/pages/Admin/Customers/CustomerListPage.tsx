@@ -16,10 +16,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { API_BASE_URL, authFetch } from '@/services/apiService';
-import { Calendar, Clock, Edit, Eye, Lock, Mail, Plus, RefreshCw, Search, ShieldCheck, Star, Trash2, Unlock, UserCircle, UserPlus, Users, Wallet } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, History, Lock, Mail, Plus, RefreshCw, Search, ShieldCheck, Star, Trash2, Unlock, UserCircle, UserPlus, Users, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import VoucherHistoryModal from '@/components/admin/vouchers/VoucherHistoryModal';
 
 interface Customer {
   id: number;
@@ -64,6 +65,10 @@ export default function CustomerListPage() {
   });
 
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyUserId, setHistoryUserId] = useState<number | null>(null);
+  const [historyUserName, setHistoryUserName] = useState("");
 
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
@@ -269,7 +274,10 @@ export default function CustomerListPage() {
         {/* Table Header Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border-b border-slate-100">
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-slate-800">Danh sách Khách hàng</h3>
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-500" />
+                Danh sách Khách hàng
+            </h3>
             <p className="text-sm text-slate-500 font-medium">Quản lý toàn bộ thông tin tài khoản và điểm tích lũy</p>
           </div>
           <div className="flex items-center gap-4 w-full sm:w-auto mt-2 sm:mt-0">
@@ -365,6 +373,18 @@ export default function CustomerListPage() {
                           onClick={(e) => { e.stopPropagation(); setDetailCustomer(c); setDetailOpen(true); }}
                         >
                           <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" title="Lịch sử Voucher"
+                          className="w-9 h-9 rounded-xl text-[#5a46e5] bg-indigo-50/50 hover:bg-indigo-100 hover:text-indigo-700 transition-all shadow-sm"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setHistoryUserId(c.id); 
+                            setHistoryUserName(c.username);
+                            setHistoryOpen(true); 
+                          }}
+                        >
+                          <History className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost" size="icon" title="Sửa thông tin"
@@ -690,6 +710,13 @@ export default function CustomerListPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <VoucherHistoryModal 
+        open={historyOpen} 
+        onOpenChange={setHistoryOpen} 
+        userId={historyUserId} 
+        userName={historyUserName}
+      />
     </div>
   );
 }

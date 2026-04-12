@@ -19,8 +19,17 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/layout/admin/confirmModal';
-import { authFetch, API_BASE_URL } from '@/services/apiService';
-import { Edit, Trash2, Users, Plus, ChevronLeft, ChevronRight, PauseCircle, PlayCircle, Calendar, Eye, Search } from 'lucide-react';
+import { authFetch, API_BASE_URL, customerApi, voucherApi } from '@/services/apiService';
+import { Edit, Trash2, Users, Plus, ChevronLeft, ChevronRight, PauseCircle, PlayCircle, Calendar, Eye, Search, Send } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -80,6 +89,48 @@ export default function VoucherListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [selectedVoucherForDist, setSelectedVoucherForDist] = useState<any | null>(null);
+  const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
+  const [isDistributeModalOpen, setIsDistributeModalOpen] = useState(false);
+  const [distributing, setDistributing] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const data = await customerApi.list({ page_size: 1000 });
+        setCustomers(data.results || (Array.isArray(data) ? data : []));
+      } catch {
+        // failed to fetch customers, ignoring silently or toast
+      }
+    };
+    fetchCustomers();
+  }, []);
+
+  const handleDistribute = async () => {
+    if (!selectedVoucherForDist || selectedCustomers.length === 0) {
+      toast.error('Vui lòng chọn khách hàng');
+      return;
+    }
+    setDistributing(true);
+    try {
+      const result = await voucherApi.distribute({
+        voucher_id: selectedVoucherForDist.voucher_id,
+        user_ids: selectedCustomers
+      });
+      toast.success(result?.message || 'Phân bổ voucher thành công');
+      setIsDistributeModalOpen(false);
+      setSelectedVoucherForDist(null);
+      setSelectedCustomers([]);
+      fetchVouchers();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Phân bổ thất bại');
+    } finally {
+      setDistributing(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -259,6 +310,19 @@ export default function VoucherListPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Gửi Voucher"
+                            className="text-violet-600 bg-violet-50/50 hover:bg-violet-100 hover:text-violet-700 font-medium rounded-xl transition-all shadow-sm shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVoucherForDist(v);
+                              setIsDistributeModalOpen(true);
+                            }}
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             title="Xem chi tiết"
                             className="text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-800 font-medium rounded-xl transition-all shadow-sm shrink-0"
                             onClick={(e) => {
@@ -415,6 +479,128 @@ export default function VoucherListPage() {
         isLoading={toggleLoading}
         onConfirm={handleToggleActive}
       />
+
+      <Dialog open={isDistributeModalOpen} onOpenChange={(open) => { setIsDistributeModalOpen(open); if(!open) setCustomerSearch(""); }}>
+        <DialogContent className="sm:max-w-[700px] p-0 border-none rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] bg-white overflow-hidden flex flex-col outline-none">
+            {/* Header section with gradient */}
+            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 md:p-8 text-white relative shrink-0">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                <DialogHeader className="relative z-10 text-left">
+                    <DialogTitle className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 tracking-tight">
+                        <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md shadow-inner shrink-0">
+                            <Send className="w-6 h-6 text-white" />
+                        </div>
+                        Gửi Voucher Tặng Khách Hàng
+                    </DialogTitle>
+                    <DialogDescription className="text-indigo-100/90 font-medium text-sm md:text-base mt-3 flex flex-col gap-1.5 text-left">
+                        <span>Chiến dịch: <strong className="text-white bg-white/20 px-2.5 py-0.5 rounded-md ml-1 font-mono tracking-wider">{selectedVoucherForDist?.code}</strong> &bull; <span className="text-white font-bold">{selectedVoucherForDist?.title}</span></span>
+                        <span className="opacity-80">Vui lòng chọn các khách hàng mục tiêu bên dưới để tiến hành phân phối mã ưu đãi.</span>
+                    </DialogDescription>
+                </DialogHeader>
+            </div>
+            
+            <div className="px-6 md:px-8 py-5 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                     <div className="relative flex-1 w-full">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-slate-400" />
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="Tìm khách hàng theo Tên, Email..."
+                          className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded-xl shadow-sm text-sm font-medium w-full transition-all"
+                          value={customerSearch}
+                          onChange={(e) => setCustomerSearch(e.target.value)}
+                        />
+                     </div>
+                     <Button 
+                       variant="outline" 
+                       className="h-11 px-5 w-full sm:w-auto border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100 hover:border-indigo-300 font-bold rounded-xl whitespace-nowrap shadow-sm transition-all active:scale-95"
+                       onClick={() => {
+                          const filteredIds = customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).map(c => c.id || c.user_id);
+                          const isAllSelected = filteredIds.length > 0 && filteredIds.every(id => selectedCustomers.includes(id));
+                          if (isAllSelected) {
+                             // Deselect all filtered
+                             setSelectedCustomers(prev => prev.filter(id => !filteredIds.includes(id)));
+                          } else {
+                             // Select all filtered
+                             const newSelected = new Set([...selectedCustomers, ...filteredIds]);
+                             setSelectedCustomers(Array.from(newSelected));
+                          }
+                       }}
+                     >
+                       {customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).length > 0 && 
+                        customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).every(id => selectedCustomers.includes(id.id || id.user_id)) 
+                        ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                     </Button>
+                </div>
+
+                <ScrollArea className="h-[360px] pr-4 -mr-4 rounded-xl">
+                  <div className="space-y-2 pb-2">
+                    {customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).map(c => {
+                      const uId = c.id || c.user_id;
+                      const isSelected = selectedCustomers.includes(uId);
+                      return (
+                        <div 
+                          key={uId} 
+                          className={`flex items-center gap-4 p-3.5 rounded-2xl cursor-pointer transition-all border-2 group ${isSelected ? 'bg-indigo-50/80 border-indigo-400 shadow-md ring-4 ring-indigo-500/10' : 'bg-white hover:bg-slate-50 border-slate-100 hover:border-indigo-200 shadow-sm'}`}
+                          onClick={() => setSelectedCustomers(prev => isSelected ? prev.filter(id => id !== uId) : [...prev, uId])}
+                        >
+                          <Checkbox id={`customer-${uId}`} checked={isSelected} className={`w-5 h-5 rounded-[6px] transition-all data-[state=checked]:border-indigo-600 data-[state=checked]:bg-indigo-600 ${isSelected ? 'text-white' : 'border-slate-300'}`} />
+                          
+                          <div className="flex items-center gap-3.5 w-full">
+                            <div className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-black shadow-inner shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors'}`}>
+                                {c.username?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className={`text-[15px] font-extrabold tracking-tight ${isSelected ? 'text-indigo-900' : 'text-slate-700 group-hover:text-indigo-700 transition-colors'}`}>{c.username}</span>
+                              <span className={`text-[12px] font-medium ${isSelected ? 'text-indigo-600/80' : 'text-slate-400'}`}>{c.email}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 && (
+                       <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                           <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                              <Search className="w-6 h-6 text-slate-300" />
+                           </div>
+                           <span className="font-bold text-sm text-slate-600">Không tìm thấy khách hàng nào.</span>
+                           <span className="text-xs mt-1">Vui lòng thử từ khóa khác.</span>
+                       </div>
+                    )}
+                  </div>
+                </ScrollArea>
+            </div>
+            
+            <div className="bg-slate-50 border-t border-slate-100 p-5 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 shadow-[0_-10px_40px_-20px_rgba(0,0,0,0.1)] relative z-10">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                   <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center shadow-inner shrink-0">
+                      <Users className="w-6 h-6 text-indigo-600" />
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-tight">Đã chọn phân phối</span>
+                      <div className="flex items-baseline gap-1.5">
+                          <span className="text-2xl font-black text-indigo-700 leading-none">{selectedCustomers.length}</span>
+                          <span className="text-[12px] font-bold text-indigo-500/80">Khách hàng</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="flex gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                   <Button variant="outline" className="flex-1 sm:flex-none h-12 px-6 font-bold text-slate-600 border-slate-300 hover:bg-slate-100 rounded-xl transition-all" onClick={() => setIsDistributeModalOpen(false)}>Quay lại</Button>
+                   <Button 
+                      onClick={handleDistribute} 
+                      disabled={distributing || selectedCustomers.length === 0} 
+                      className="flex-1 sm:flex-none h-12 px-8 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-black uppercase tracking-wider text-[13px] rounded-xl shadow-[0_8px_20px_-6px_rgba(79,70,229,0.5)] border-none transition-all hover:scale-[1.02] active:scale-95 disabled:hover:scale-100 disabled:opacity-70 disabled:shadow-none"
+                   >
+                      {distributing ? "ĐANG XỬ LÝ..." : "XÁC NHẬN GỬI"}
+                      {!distributing && <Send className="w-4 h-4 ml-2 opacity-90" />}
+                   </Button>
+                </div>
+            </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

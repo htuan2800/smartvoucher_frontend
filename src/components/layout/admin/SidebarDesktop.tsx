@@ -31,8 +31,8 @@ const SidebarDesktop = ({ sidebarOpen, expandedItems, toggleExpanded, isActivePa
               <Wand2 className="size-5" />
             </div>
             <div>
-              <h2 className="font-semibold">Designali</h2>
-              <p className="text-xs text-muted-foreground">Creative Suite</p>
+              <h2 className="font-semibold">SmartVoucher</h2>
+              <p className="text-xs text-muted-foreground">Quản lý Voucher</p>
             </div>
           </div>
         </div>

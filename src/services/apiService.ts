@@ -70,12 +70,12 @@ export const authApi = {
     });
 
     if (!response.ok) {
-        let errorMsg = 'Đăng ký thất bại';
-        try {
-            const errData = await response.json();
-            errorMsg = errData.message || errData.error || errorMsg;
-        } catch { }
-        throw new Error(errorMsg);
+      let errorMsg = 'Đăng ký thất bại';
+      try {
+        const errData = await response.json();
+        errorMsg = errData.message || errData.error || errorMsg;
+      } catch { }
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -111,10 +111,26 @@ export const voucherApi = {
   create: async (payload: unknown) => (await api.post('/vouchers/create/', payload)).data,
   update: async (id: number, payload: unknown) => (await api.patch(`/vouchers/${id}/`, payload)).data,
   delete: async (id: number) => (await api.delete(`/vouchers/${id}/`)).data,
+  distribute: async (payload: unknown) => (await api.post('/vouchers/distribute/', payload)).data,
+  createAndDistribute: async (payload: unknown) => (await api.post('/vouchers/create-and-distribute/', payload)).data,
+  recipients: async (id: number, params?: Record<string, unknown>) => (await api.get(`/vouchers/${id}/recipients/`, { params })).data,
+  removeRecipient: async (voucherId: number, userId: number) => (await api.delete(`/vouchers/${voucherId}/recipients/${userId}/`)).data,
+  deliveryLogs: async (id: number) => (await api.get(`/vouchers/${id}/delivery-logs/`)).data,
+  resendEmail: async (voucherId: number, userId: number) => (await api.post(`/vouchers/${voucherId}/resend-email/`, { user_id: userId })).data,
+  sendEmail: async (voucherId: number, email: string) => (await api.post(`/vouchers/${voucherId}/send-email/`, { email })).data,
+  userHistory: async (userId: number) => (await api.get(`/vouchers/user/${userId}/history/`)).data,
 };
 
 export const customerApi = {
-  list: async () => (await api.get('/users/customers/')).data,
+  list: async (params?: Record<string, unknown>) => (await api.get('/users/customers/', { params })).data,
+};
+
+export const staffApi = {
+  list: async () => (await api.get('/users/staff/')).data,
+  updateRole: async (userId: number, payload: unknown) => (await api.patch(`/users/${userId}/role/`, payload)).data,
+  updateUser: async (userId: number, payload: unknown) => (await api.patch(`/users/${userId}/update/`, payload)).data,
+  deleteUser: async (userId: number) => (await api.delete(`/users/${userId}/`)).data,
+  toggleActive: async (userId: number) => (await api.patch(`/users/${userId}/toggle-active/`)).data,
 };
 
 export default api;

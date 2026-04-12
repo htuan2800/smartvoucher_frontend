@@ -103,7 +103,7 @@ export default function StaffListPage() {
     setAddLoading(true);
     try {
       // Step 1: Register user
-      const regRes = await fetch(`${API_BASE_URL}/users/register/`, {
+      const regRes = await fetch(`${API_BASE_URL}/users/staff-register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(addForm),
@@ -112,36 +112,11 @@ export default function StaffListPage() {
         const err = await regRes.json().catch(() => ({}));
         toast.error(err.message || 'Tạo tài khoản thất bại');
         return;
-      }
-      // Step 2: Get the customer list to find the new user's ID
-      const custRes = await authFetch(`${API_BASE_URL}/users/customers/`);
-      if (!custRes.ok) {
-        toast.error('Đăng ký nhân viên thành công nhưng không thể cập nhật vai trò');
-        setAddDialogOpen(false);
-        fetchStaff();
-        return;
-      }
-      const custData: any[] = await custRes.json();
-      const newUser = custData.find((u: any) => u.username === addForm.username);
-      if (!newUser) {
+      } else  {
         toast.success('Đăng ký nhân viên thành công');
         setAddDialogOpen(false);
         fetchStaff();
-        return;
       }
-      // Step 3: Update role to staff
-      const roleRes = await authFetch(`${API_BASE_URL}/users/${newUser.id}/role/`, {
-        method: 'PATCH',
-        body: JSON.stringify({ role: 'staff' }),
-      });
-      if (!roleRes.ok) {
-        toast.error('Tạo tài khoản thành công nhưng không thể gán vai trò nhân viên');
-        return;
-      }
-      toast.success('Thêm nhân viên thành công');
-      setAddForm({ username: '', email: '', password: '' });
-      setAddDialogOpen(false);
-      fetchStaff();
     } catch {
       toast.error('Lỗi kết nối server');
     } finally {

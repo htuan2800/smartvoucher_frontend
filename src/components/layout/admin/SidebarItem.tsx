@@ -22,7 +22,7 @@ export const sidebarItems: SidebarItem[] = [
   {
     title: "Thống kê",
     icon: <LayoutDashboard />,
-    path: "/admin",
+    path: "/admin/dashboard",
   },
   {
     title: "Voucher",

@@ -14,10 +14,30 @@ import CustomerListPage from './pages/Admin/Customers/CustomerListPage'
 import HomePage from './pages/Public/HomePage'
 import RegisterPage from './pages/Public/RegisterPage'
 import CustomerLoginPage from './pages/Public/CustomerLoginPage'
-import { authApi } from './services/apiService'
+import { useAuth } from './context/AuthContext'
+import HomeAdminPage from './pages/Admin/Home/page'
+import ShopPage from './pages/User/HomePage'
+import CartPage from './pages/User/CartPage'
+import CheckoutPage from './pages/User/CheckoutPage'
 
 function RequireAdminAuth() {
-  return authApi.getAccessToken() ? <Outlet /> : <Navigate to="/admin/login" replace />
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    ); 
+  }
+  if (!user) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  if (user.role !== 'admin' && user.role !== 'staff') {
+    return <Navigate to="/" replace />; 
+  }
+
+  return <Outlet />;
 }
 
 function AdminPlaceholderPage({ title }: { title: string }) {
@@ -35,13 +55,17 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<CustomerLoginPage />} />
+      <Route path="/shop" element={<ShopPage />} />
+      <Route path="/shop/cart" element={<CartPage />} />
+      <Route path="/shop/checkout" element={<CheckoutPage />} />
       <Route path="/admin/login" element={<LoginPage />} />
       <Route element={<RequireAdminAuth />}>
         <Route
           path="/admin"
           element={<AdminLayout />}
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<HomeAdminPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="vouchers/list" element={<VoucherListPage />} />
           <Route path="vouchers/create" element={<VoucherCreatePage />} />
           <Route path="vouchers/:voucherId/edit" element={<VoucherEditPage />} />

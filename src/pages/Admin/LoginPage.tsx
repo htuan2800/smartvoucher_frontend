@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { authApi } from '@/services/apiService'
+import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
+  const {fetchMe} = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -21,6 +23,7 @@ export default function LoginPage() {
 
     try {
       await authApi.login({ username, password })
+      await fetchMe?.()
       navigate('/admin', { replace: true })
     } catch {
       setError('Đăng nhập thất bại. Vui lòng kiểm tra tài khoản hoặc mật khẩu.')

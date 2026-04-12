@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { authApi } from '@/services/apiService'
+import { useAuth } from '@/context/AuthContext'
 
 export default function CustomerLoginPage() {
+  const {fetchMe} = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +23,8 @@ export default function CustomerLoginPage() {
 
     try {
       await authApi.login({ username, password })
-      navigate('/', { replace: true })
+      await fetchMe?.()
+      navigate('/shop', { replace: true })
     } catch {
       setError('Đăng nhập thất bại. Vui lòng kiểm tra tài khoản hoặc mật khẩu.')
     } finally {

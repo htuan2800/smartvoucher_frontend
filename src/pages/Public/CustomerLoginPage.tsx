@@ -49,9 +49,9 @@ export default function CustomerLoginPage() {
       </div>
 
       <div className="relative z-10 flex flex-col md:flex-row w-full max-w-7xl mx-auto px-4 py-8 items-center justify-center gap-12 lg:gap-24">
-        
+
         {/* Left Side: Brand & Features */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -77,7 +77,7 @@ export default function CustomerLoginPage() {
 
           <div className="grid gap-6">
             {features.map((item, idx) => (
-              <motion.div 
+              <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -108,12 +108,12 @@ export default function CustomerLoginPage() {
         >
           <Card className="border-white/10 bg-white/5 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-white overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-indigo-500" />
-            
+
             <CardHeader className="space-y-4 pb-6 px-8 pt-10">
               <div className="lg:hidden flex justify-center mb-4">
-                 <div className="p-4 bg-indigo-500/10 rounded-2xl ring-1 ring-indigo-500/30">
-                   <User className="w-8 h-8 text-indigo-400" />
-                 </div>
+                <div className="p-4 bg-indigo-500/10 rounded-2xl ring-1 ring-indigo-500/30">
+                  <User className="w-8 h-8 text-indigo-400" />
+                </div>
               </div>
               <div className="text-center space-y-1.5">
                 <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
@@ -161,7 +161,7 @@ export default function CustomerLoginPage() {
 
                 <AnimatePresence>
                   {error && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
@@ -172,9 +172,9 @@ export default function CustomerLoginPage() {
                   )}
                 </AnimatePresence>
 
-                <Button 
-                  type="submit" 
-                  size="lg" 
+                <Button
+                  type="submit"
+                  size="lg"
                   className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold shadow-lg shadow-indigo-900/20 active:scale-[0.98] transition-all"
                   disabled={loading}
                 >
@@ -188,19 +188,20 @@ export default function CustomerLoginPage() {
             </CardContent>
 
             <div className="px-8 py-5 bg-white/5 border-t border-white/10 flex flex-col items-center gap-2 text-[12px] text-slate-400">
-               <div>Chưa có tài khoản? <Link to="/register" className="text-cyan-400 hover:text-cyan-300 font-bold ml-1">Đăng ký ngay</Link></div>
-               <div className="flex justify-between items-center w-full uppercase tracking-widest font-medium mt-2 pt-2 border-t border-white/5">
-                 <span>SmartVoucher v1.0</span>
-                 <div className="flex gap-4">
-                   <a href="#" className="hover:text-cyan-400 transition-colors">Trợ giúp</a>
-                   <a href="#" className="hover:text-cyan-400 transition-colors">Chính sách</a>
-                 </div>
-               </div>
+              <div>Chưa có tài khoản? <Link to="/register" className="text-cyan-400 hover:text-cyan-300 font-bold ml-1">Đăng ký ngay</Link></div>
+              <div className="flex justify-between items-center w-full uppercase tracking-widest font-medium mt-2 pt-2 border-t border-white/5">
+                <span>SmartVoucher v1.0</span>
+                <div className="flex gap-4">
+                  <a href="#" className="hover:text-cyan-400 transition-colors">Trợ giúp</a>
+                  <a href="#" className="hover:text-cyan-400 transition-colors">Chính sách</a>
+                </div>
+              </div>
             </div>
           </Card>
         </motion.div>
       </div>
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes pulse-slow {
           0%, 100% { opacity: 0.2; transform: scale(1); }
           50% { opacity: 0.5; transform: scale(1.1); }

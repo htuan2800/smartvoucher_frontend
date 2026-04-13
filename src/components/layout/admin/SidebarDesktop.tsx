@@ -18,7 +18,7 @@ interface SidebarProps {
 }
 
 const SidebarDesktop = ({ sidebarOpen, expandedItems, toggleExpanded, isActivePath, handleNavClick }: SidebarProps) => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   return (
     <div
       className={cn(
@@ -33,8 +33,8 @@ const SidebarDesktop = ({ sidebarOpen, expandedItems, toggleExpanded, isActivePa
               <Wand2 className="size-5" />
             </div>
             <div>
-              <h2 className="font-semibold">{user?.username || ""}</h2>
-              <p className="text-xs text-muted-foreground">{user?.role==="admin" ? "Admin" : "Staff"}</p>
+              <h2 className="font-semibold">SmartVoucher</h2>
+              <p className="text-xs text-muted-foreground">Quản lý Voucher</p>
             </div>
           </div>
         </div>

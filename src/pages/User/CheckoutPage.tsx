@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   MapPin,
@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   X,
   CreditCard,
-  Sparkles,
   ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'

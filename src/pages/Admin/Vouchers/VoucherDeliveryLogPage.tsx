@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -15,26 +17,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { voucherApi } from '@/services/apiService';
 import {
   Mail,
   MailCheck,
   MailX,
   MailWarning,
+  MessageSquare,
   RefreshCw,
-  Send,
   ArrowLeft,
   CheckCircle2,
   XCircle,
@@ -46,7 +36,8 @@ interface DeliveryLog {
   id: number;
   user_id: number;
   username: string;
-  email: string;
+  email?: string;
+  contact_info?: string;
   channel: string;
   status: string;
   status_display: string;
@@ -61,7 +52,7 @@ interface Summary {
   skipped: number;
 }
 
-const statusConfig: Record<string, { icon: typeof MailCheck; color: string; label: string }> = {
+const statusConfig: Record<string, { icon: any; color: string; label: string }> = {
   sent: { icon: MailCheck, color: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Đã gửi' },
   failed: { icon: MailX, color: 'bg-red-50 text-red-700 border-red-200', label: 'Thất bại' },
   skipped_no_email: { icon: MailWarning, color: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Không có email' },
@@ -75,10 +66,7 @@ export default function VoucherDeliveryLogPage() {
   const [loading, setLoading] = useState(false);
   const [resendingId, setResendingId] = useState<number | null>(null);
 
-  // Send email dialog
-  const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [sendEmail, setSendEmail] = useState('');
-  const [sendLoading, setSendLoading] = useState(false);
+
 
   const fetchLogs = async () => {
     if (!voucherId) return;
@@ -102,34 +90,16 @@ export default function VoucherDeliveryLogPage() {
     setResendingId(log.id);
     try {
       const result = await voucherApi.resendEmail(Number(voucherId), log.user_id);
-      toast.success(result.message || 'Gửi lại email thành công');
+      toast.success(result.message || 'Gửi lại thành công');
       fetchLogs();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Gửi lại email thất bại');
+      toast.error(err?.response?.data?.error || 'Gửi lại thất bại');
     } finally {
       setResendingId(null);
     }
   };
 
-  const handleSendToEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!sendEmail.trim()) {
-      toast.error('Vui lòng nhập email');
-      return;
-    }
-    setSendLoading(true);
-    try {
-      const result = await voucherApi.sendEmail(Number(voucherId), sendEmail.trim());
-      toast.success(result.message || 'Gửi email thành công');
-      setSendEmail('');
-      setSendDialogOpen(false);
-      fetchLogs();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Gửi email thất bại');
-    } finally {
-      setSendLoading(false);
-    }
-  };
+
 
   return (
     <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
@@ -142,57 +112,14 @@ export default function VoucherDeliveryLogPage() {
           <div>
             <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Mail className="w-7 h-7 text-indigo-600" />
-              Lịch sử gửi Email
+              Lịch sử gửi Voucher
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               Voucher #{voucherId} — Theo dõi trạng thái gửi email thông báo
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </Button>
-          <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                <Send className="w-4 h-4 mr-1" />
-                Gửi đến Email
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Gửi Voucher qua Email</DialogTitle>
-                <DialogDescription>
-                  Nhập email khách hàng để phân phối voucher và gửi thông báo.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSendToEmail} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email khách hàng</label>
-                  <Input
-                    type="email"
-                    placeholder="customer@example.com"
-                    value={sendEmail}
-                    onChange={(e) => setSendEmail(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Khách hàng sẽ được tự động phân phối voucher và nhận email thông báo.
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setSendDialogOpen(false)}>
-                    Hủy
-                  </Button>
-                  <Button type="submit" disabled={sendLoading} className="bg-indigo-600 hover:bg-indigo-700">
-                    {sendLoading ? 'Đang gửi...' : 'Gửi Email'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+
       </div>
 
       {/* Stats Cards */}
@@ -246,7 +173,7 @@ export default function VoucherDeliveryLogPage() {
       {/* Logs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Chi tiết gửi Email</CardTitle>
+          <CardTitle>Chi tiết giao tiếp</CardTitle>
           <CardDescription>
             Danh sách tất cả email đã gửi cho voucher này
           </CardDescription>
@@ -257,17 +184,14 @@ export default function VoucherDeliveryLogPage() {
           ) : logs.length === 0 ? (
             <div className="text-center py-12">
               <Mail className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-              <p className="text-slate-400 font-medium">Chưa có email nào được gửi cho voucher này</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Nhấn "Gửi đến Email" để gửi voucher cho khách hàng
-              </p>
+              <p className="text-slate-400 font-medium">Chưa có thông báo nào được gửi cho voucher này</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Người nhận</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Kênh liên lạc</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Lỗi</TableHead>
                   <TableHead>Thời gian</TableHead>
@@ -278,10 +202,14 @@ export default function VoucherDeliveryLogPage() {
                 {logs.map((log) => {
                   const config = statusConfig[log.status] || statusConfig.failed;
                   const StatusIcon = config.icon;
+
+
                   return (
                     <TableRow key={log.id}>
                       <TableCell className="font-medium">{log.username}</TableCell>
-                      <TableCell className="text-muted-foreground font-mono text-sm">{log.email || '—'}</TableCell>
+                      <TableCell className="text-muted-foreground font-mono text-sm uppercase">
+                        {log.email || log.contact_info || '—'}
+                      </TableCell>
                       <TableCell>
                         <Badge className={`${config.color} border gap-1`}>
                           <StatusIcon className="w-3 h-3" />

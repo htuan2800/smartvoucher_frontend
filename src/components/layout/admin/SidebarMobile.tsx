@@ -20,7 +20,7 @@ interface SidebarProps {
 }
 
 const SidebarMobile = ({ mobileMenuOpen, setMobileMenuOpen, toggleExpanded, isActivePath, handleNavClick, expandedItems }: SidebarProps) => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   return (
     <div
       className={cn(

@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/select';
 import { ConfirmModal } from '@/components/layout/admin/confirmModal';
 import { API_BASE_URL, authFetch } from '@/services/apiService';
-import { Trash2, UserPlus, RefreshCw, ShieldCheck, Mail, UserCircle, Edit, ShieldAlert, Lock, Unlock } from 'lucide-react';
+import { Trash2, UserPlus, ShieldCheck, Mail, UserCircle, Edit, ShieldAlert, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ export default function StaffListPage() {
   // Dialog: add new staff
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
-  const [addForm, setAddForm] = useState({ username: '', email: '', password: '' });
+  const [addForm, setAddForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
 
   // Dialog: edit role
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -100,6 +100,14 @@ export default function StaffListPage() {
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
+    if (addForm.password.length < 6) {
+      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+    if (addForm.password !== addForm.confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp');
+      return;
+    }
     setAddLoading(true);
     try {
       // Step 1: Register user
@@ -112,9 +120,10 @@ export default function StaffListPage() {
         const err = await regRes.json().catch(() => ({}));
         toast.error(err.message || 'Tạo tài khoản thất bại');
         return;
-      } else  {
+      } else {
         toast.success('Đăng ký nhân viên thành công');
         setAddDialogOpen(false);
+        setAddForm({ username: '', email: '', password: '', confirmPassword: '' });
         fetchStaff();
       }
     } catch {
@@ -204,10 +213,7 @@ export default function StaffListPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={fetchStaff} disabled={loading} className="h-11 rounded-xl shadow-sm bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-4">
-            <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin text-indigo-500' : 'text-slate-500'}`} />
-            Làm mới
-          </Button>
+
           <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-5 h-11 transition-all font-semibold w-fit">
@@ -217,51 +223,77 @@ export default function StaffListPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-md rounded-[2rem] p-0 border-none shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] bg-white overflow-hidden">
               <div className="bg-gradient-to-br from-indigo-600 to-violet-600 p-8 text-white relative">
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                  <DialogHeader>
-                      <DialogTitle className="text-2xl font-black text-white flex items-center gap-3">
-                          <UserCircle className="w-7 h-7 opacity-90" />
-                          Tài khoản Staff
-                      </DialogTitle>
-                      <DialogDescription className="text-indigo-100/90 font-medium text-sm mt-1">
-                          Hệ thống sẽ cấp quyền cho nhân viên mới vào trang quản trị CMS.
-                      </DialogDescription>
-                  </DialogHeader>
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-black text-white flex items-center gap-3">
+                    <UserCircle className="w-7 h-7 opacity-90" />
+                    Tài khoản Staff
+                  </DialogTitle>
+                  <DialogDescription className="text-indigo-100/90 font-medium text-sm mt-1">
+                    Hệ thống sẽ cấp quyền cho nhân viên mới vào trang quản trị CMS.
+                  </DialogDescription>
+                </DialogHeader>
               </div>
               <form onSubmit={handleAddStaff} className="p-8 space-y-6 bg-slate-50/50">
                 <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-slate-500 pl-1">Họ và Tên đăng nhập</label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 pl-1">Họ và Tên đăng nhập</label>
+                    <Input
+                      className="h-12 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-slate-800"
+                      placeholder="Nhập tên đăng nhập..."
+                      value={addForm.username}
+                      onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 pl-1">Email liên hệ</label>
+                    <Input
+                      className="h-12 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-slate-800"
+                      type="email"
+                      placeholder="example@mail.com"
+                      value={addForm.email}
+                      onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 pl-1">Mật khẩu cấp <span className="text-rose-400">*</span></label>
+                    <Input
+                      className="h-12 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-slate-800"
+                      type="password"
+                      placeholder="Tối thiểu 6 ký tự"
+                      value={addForm.password}
+                      onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                      required minLength={6}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 pl-1">Xác nhận Mật khẩu <span className="text-rose-400">*</span></label>
+                    <div className="relative">
                       <Input
-                        className="h-12 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-slate-800"
-                        placeholder="Nhập tên đăng nhập..."
-                        value={addForm.username}
-                        onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-slate-500 pl-1">Email liên hệ</label>
-                      <Input
-                        className="h-12 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-slate-800"
-                        type="email"
-                        placeholder="example@mail.com"
-                        value={addForm.email}
-                        onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-slate-500 pl-1">Mật khẩu cấp</label>
-                      <Input
-                        className="h-12 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-slate-800"
+                        className={`h-12 border-2 rounded-xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-slate-800 pr-10 ${addForm.confirmPassword && addForm.password !== addForm.confirmPassword
+                          ? 'border-rose-400 focus:border-rose-500 bg-rose-50/30'
+                          : addForm.confirmPassword && addForm.password === addForm.confirmPassword
+                            ? 'border-emerald-400 focus:border-emerald-500 bg-emerald-50/30'
+                            : 'border-slate-200 focus:border-indigo-500'
+                          }`}
                         type="password"
-                        placeholder="Tối thiểu 6 ký tự"
-                        value={addForm.password}
-                        onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                        required minLength={6}
+                        placeholder="Nhập lại mật khẩu"
+                        value={addForm.confirmPassword}
+                        onChange={(e) => setAddForm({ ...addForm, confirmPassword: e.target.value })}
+                        required
                       />
+                      {addForm.confirmPassword && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg">
+                          {addForm.password === addForm.confirmPassword ? '✅' : '❌'}
+                        </span>
+                      )}
                     </div>
+                    {addForm.confirmPassword && addForm.password !== addForm.confirmPassword && (
+                      <p className="text-xs font-bold text-rose-500 pl-1 animate-in slide-in-from-top-1">Mật khẩu xác nhận không khớp</p>
+                    )}
+                  </div>
                 </div>
                 <DialogFooter className="pt-4 border-t border-slate-200/80">
                   <Button type="button" variant="outline" className="h-12 rounded-xl border-slate-300 font-bold text-slate-600 w-full" onClick={() => setAddDialogOpen(false)}>
@@ -282,13 +314,13 @@ export default function StaffListPage() {
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 bg-white border-b border-slate-100">
             <div className="space-y-1">
               <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-indigo-500" />
-                  Danh sách Quản trị viên
+                <ShieldCheck className="w-5 h-5 text-indigo-500" />
+                Danh sách Quản trị viên
               </CardTitle>
               <CardDescription className="text-slate-500 font-medium">Bạn có thể thay đổi phân quyền hoặc vô hiệu hóa tài khoản tại đây</CardDescription>
             </div>
             <div className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-4 py-1.5 rounded-xl text-sm font-bold shadow-sm">
-                Đang trực: {staffList.length} nhân sự
+              Đang trực: {staffList.length} nhân sự
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -310,49 +342,55 @@ export default function StaffListPage() {
                     {staffList.map((s) => (
                       <TableRow key={s.id} className="group hover:bg-indigo-50/20 cursor-pointer border-slate-100/50 transition-colors h-[84px]">
                         <TableCell className="pl-8">
-                            <Badge variant="outline" className="font-mono text-slate-500 border-slate-300 bg-white">#{s.id}</Badge>
+                          <Badge variant="outline" className="font-mono text-slate-500 border-slate-300 bg-white">#{s.id}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-100 to-blue-50 flex items-center justify-center border border-indigo-200/50 shadow-sm shrink-0">
-                                  {s.role === 'admin' ? <ShieldAlert className="w-5 h-5 text-indigo-600" /> : <UserCircle className="w-5 h-5 text-blue-500" />}
-                              </div>
-                              <div className="flex flex-col">
-                                  <span className="font-black text-[15px] text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors">{s.username}</span>
-                                  <span className="text-[12px] font-bold text-slate-400 mt-0.5 flex items-center gap-1.5"><Mail className="w-3 h-3" /> {s.email}</span>
-                              </div>
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-100 to-blue-50 flex items-center justify-center border border-indigo-200/50 shadow-sm shrink-0">
+                              {s.role === 'admin' ? <ShieldAlert className="w-5 h-5 text-indigo-600" /> : <UserCircle className="w-5 h-5 text-blue-500" />}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-black text-[15px] text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors">{s.username}</span>
+                              <span className="text-[12px] font-bold text-slate-400 mt-0.5 flex items-center gap-1.5"><Mail className="w-3 h-3" /> {s.email}</span>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={cn(
-                                "px-3 py-1 font-black text-[10px] uppercase tracking-widest border ring-1 shadow-sm rounded-full",
-                                s.role === 'admin' ? "bg-violet-50 text-violet-700 border-violet-200 ring-violet-500/10" : "bg-indigo-50 text-indigo-600 border-indigo-200 ring-indigo-500/10"
+                              "px-3 py-1 font-black text-[10px] uppercase tracking-widest border ring-1 shadow-sm rounded-full",
+                              s.role === 'admin' ? "bg-violet-50 text-violet-700 border-violet-200 ring-violet-500/10" : "bg-indigo-50 text-indigo-600 border-indigo-200 ring-indigo-500/10"
                             )}>
                             {s.role === 'admin' ? 'SYSTEM ADMIN' : 'STAFF CMS'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={cn(
-                                "px-3 py-1 font-bold text-[10px] uppercase tracking-widest border ring-1 shadow-sm rounded-full",
-                                s.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10" : "bg-rose-50 text-rose-700 border-rose-200 ring-rose-500/10"
+                              "px-3 py-1 font-bold text-[10px] uppercase tracking-widest border ring-1 shadow-sm rounded-full",
+                              s.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10" : "bg-rose-50 text-rose-700 border-rose-200 ring-rose-500/10"
                             )}>
                             {s.is_active ? 'ĐANG THEO DÕI' : 'TẠM KHÓA'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-8">
-                            <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2">
+                            {s.role === 'admin' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 text-[11px] font-bold uppercase tracking-wider select-none">
+                                <ShieldAlert className="w-3.5 h-3.5 text-violet-400" />
+                                Chỉ xem
+                              </span>
+                            ) : (
+                              <>
                                 <Button
                                   variant="ghost" size="icon"
-                                  disabled={s.role === 'admin'}
                                   className={cn(
-                                      "w-10 h-10 rounded-xl font-medium transition-all shadow-sm group-hover:scale-110 disabled:scale-100 disabled:bg-slate-100 disabled:text-slate-300 disabled:shadow-none disabled:cursor-not-allowed",
-                                      s.is_active ? "text-amber-500 bg-amber-50/50 hover:bg-amber-100" : "text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100"
+                                    "w-10 h-10 rounded-xl font-medium transition-all shadow-sm group-hover:scale-110",
+                                    s.is_active ? "text-amber-500 bg-amber-50/50 hover:bg-amber-100" : "text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100"
                                   )}
-                                  title={s.role === 'admin' ? "Không thể khóa Administrator" : (s.is_active ? "Khóa Quản trị viên" : "Mở khóa Quản trị viên")}
+                                  title={s.is_active ? "Khóa Quản trị viên" : "Mở khóa Quản trị viên"}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setToggleTarget(s);
@@ -363,9 +401,8 @@ export default function StaffListPage() {
                                 </Button>
                                 <Button
                                   variant="ghost" size="icon"
-                                  disabled={s.role === 'admin'}
-                                  className="w-10 h-10 rounded-xl text-blue-600 bg-blue-50/50 hover:bg-blue-100 hover:text-blue-700 font-medium transition-all shadow-sm group-hover:scale-110 disabled:scale-100 disabled:bg-slate-100 disabled:text-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
-                                  title={s.role === 'admin' ? "Không thể sửa quyền Administrator" : "Chỉnh sửa Phân quyền"}
+                                  className="w-10 h-10 rounded-xl text-blue-600 bg-blue-50/50 hover:bg-blue-100 hover:text-blue-700 font-medium transition-all shadow-sm group-hover:scale-110"
+                                  title="Chỉnh sửa Phân quyền"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setEditTarget(s);
@@ -377,9 +414,8 @@ export default function StaffListPage() {
                                 </Button>
                                 <Button
                                   variant="ghost" size="icon"
-                                  disabled={s.role === 'admin'}
-                                  className="w-10 h-10 rounded-xl text-rose-500 bg-rose-50/50 hover:bg-rose-100 hover:text-rose-600 font-medium transition-all shadow-sm group-hover:scale-110 disabled:scale-100 disabled:bg-slate-100 disabled:text-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
-                                  title={s.role === 'admin' ? "Không thể xóa Administrator" : "Xóa Nhân viên khỏi CMS"}
+                                  className="w-10 h-10 rounded-xl text-rose-500 bg-rose-50/50 hover:bg-rose-100 hover:text-rose-600 font-medium transition-all shadow-sm group-hover:scale-110"
+                                  title="Xóa Nhân viên khỏi CMS"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setDeleteTarget(s);
@@ -388,7 +424,9 @@ export default function StaffListPage() {
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
-                            </div>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -414,8 +452,8 @@ export default function StaffListPage() {
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
             <DialogHeader>
               <DialogTitle className="text-2xl font-black text-white flex items-center gap-3">
-                  <ShieldCheck className="w-7 h-7 opacity-90" />
-                  Cập nhật Vai trò
+                <ShieldCheck className="w-7 h-7 opacity-90" />
+                Cập nhật Vai trò
               </DialogTitle>
               <DialogDescription className="text-blue-100/90 font-medium text-sm mt-1">
                 Thay đổi quyền truy cập CMS cho quản trị viên{' '}
@@ -467,7 +505,7 @@ export default function StaffListPage() {
           if (!open) setToggleTarget(null);
         }}
         title={toggleTarget?.is_active ? "Khóa Quản trị viên" : "Mở khóa Quản trị viên"}
-        description={toggleTarget?.is_active 
+        description={toggleTarget?.is_active
           ? `Bạn có chắc muốn khóa truy cập của "${toggleTarget?.username}"? Nhân viên này sẽ không thể đăng nhập vào hệ thống.`
           : `Bạn có muốn cấp lại quyền truy cập cho "${toggleTarget?.username}"?`
         }

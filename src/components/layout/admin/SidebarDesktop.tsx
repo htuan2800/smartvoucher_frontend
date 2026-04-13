@@ -18,7 +18,7 @@ interface SidebarProps {
 }
 
 const SidebarDesktop = ({ sidebarOpen, expandedItems, toggleExpanded, isActivePath, handleNavClick }: SidebarProps) => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   return (
     <div
       className={cn(

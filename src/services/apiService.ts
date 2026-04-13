@@ -113,6 +113,7 @@ export const voucherApi = {
   update: async (id: number, payload: unknown) => (await api.patch(`/vouchers/${id}/`, payload)).data,
   delete: async (id: number) => (await api.delete(`/vouchers/${id}/`)).data,
   distribute: async (payload: unknown) => (await api.post('/vouchers/distribute/', payload)).data,
+  eligibleUsers: async (voucherId: number) => (await api.get(`/vouchers/${voucherId}/eligible-users/`)).data,
   createAndDistribute: async (payload: unknown) => (await api.post('/vouchers/create-and-distribute/', payload)).data,
   recipients: async (id: number, params?: Record<string, unknown>) => (await api.get(`/vouchers/${id}/recipients/`, { params })).data,
   removeRecipient: async (voucherId: number, userId: number) => (await api.delete(`/vouchers/${voucherId}/recipients/${userId}/`)).data,

@@ -434,6 +434,9 @@ export default function VoucherForm({ initialData, isEdit = false }: VoucherForm
             {watchedValues.rule.min_order_amount > 0 && ` Áp dụng cho đơn hàng từ ${formatCurrency(watchedValues.rule.min_order_amount)}đ.`}
             {watchedValues.rule.min_items > 0 && ` Tối thiểu ${watchedValues.rule.min_items} sản phẩm.`}
             {watchedValues.rule.birthday_only && ` Chỉ áp dụng tháng sinh nhật.`}
+            {watchedValues.rule.required_product_type && ` Chỉ áp dụng cho sản phẩm loại `}
+            {watchedValues.rule.required_product_type && <b className="text-violet-700">"{watchedValues.rule.required_product_type}"</b>}
+            {watchedValues.rule.required_product_type && `.`}
           </p>
         </div>
       </div>
@@ -919,6 +922,39 @@ export default function VoucherForm({ initialData, isEdit = false }: VoucherForm
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Sản phẩm áp dụng */}
+              <div className="pt-6 border-t border-slate-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold text-sm text-slate-700 pl-1">Sản phẩm áp dụng</Label>
+                  <span className="text-[11px] text-slate-400 font-medium italic pr-1">Bỏ trống = áp dụng cho tất cả sản phẩm</span>
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="VD: food, drink, combo... (nhập tên loại sản phẩm)"
+                    className="h-12 rounded-xl bg-slate-50 border-transparent font-bold focus:bg-white transition-all shadow-inner pl-4 pr-24"
+                    value={watchedValues.rule.required_product_type || ''}
+                    onChange={(e) => form.setValue("rule.required_product_type", e.target.value.trim() === '' ? null : e.target.value)}
+                  />
+                  {watchedValues.rule.required_product_type && (
+                    <button
+                      type="button"
+                      onClick={() => form.setValue("rule.required_product_type", null)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors bg-slate-100 hover:bg-red-50 px-2 py-1 rounded-lg"
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+                {watchedValues.rule.required_product_type && (
+                  <div className="flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-top-1 duration-200">
+                    <span className="text-[11px] text-slate-500 font-medium">Đang áp dụng cho:</span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-xs font-bold border border-violet-200 shadow-sm">
+                      🏷️ {watchedValues.rule.required_product_type}
+                    </span>
+                  </div>
+                )}
               </div>
 
             </CardContent>

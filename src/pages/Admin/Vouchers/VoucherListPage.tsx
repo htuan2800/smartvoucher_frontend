@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/layout/admin/confirmModal';
 import { authFetch, API_BASE_URL, customerApi, voucherApi } from '@/services/apiService';
-import { Edit, Trash2, Users, Plus, ChevronLeft, ChevronRight, PauseCircle, PlayCircle, Calendar, Eye, Search, Send, Mail } from 'lucide-react';
+import { Edit, Trash2, Users, Plus, ChevronLeft, ChevronRight, PauseCircle, PlayCircle, Calendar, Eye, Search, Send, Mail, Lock, ShieldAlert, ShieldCheck, ShieldHalf } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -106,33 +106,56 @@ export default function VoucherListPage() {
         const data = await customerApi.list({ page_size: 1000 });
         setCustomers(data.results || (Array.isArray(data) ? data : []));
       } catch {
-        // failed to fetch customers, ignoring silently or toast
+        toast.error('Không thể tải danh sách khách hàng');
       }
     };
     fetchCustomers();
   }, []);
 
+  useEffect(() => {
+    if (isDistributeModalOpen && selectedVoucherForDist && !autoSelectResult && !autoSelectLoading) {
+      const fetchEligibility = async () => {
+        setAutoSelectLoading(true);
+        try {
+          const result = await voucherApi.eligibleUsers(selectedVoucherForDist.voucher_id);
+          setAutoSelectResult(result);
+        } catch {
+          toast.error('Không thể kiểm tra điều kiện khách hàng');
+        } finally {
+          setAutoSelectLoading(false);
+        }
+      };
+      fetchEligibility();
+    }
+  }, [isDistributeModalOpen, selectedVoucherForDist, autoSelectResult, autoSelectLoading]);
+
   const handleAutoSelect = useCallback(async () => {
     if (!selectedVoucherForDist) return;
-    setAutoSelectLoading(true);
-    setAutoSelectResult(null);
-    try {
-      const result = await voucherApi.eligibleUsers(selectedVoucherForDist.voucher_id);
-      setAutoSelectResult(result);
-      // Pre-select all NEW eligible users (not yet assigned)
-      const newIds = (result.users || []).filter((u: any) => !u.already_assigned).map((u: any) => u.id);
-      setSelectedCustomers(newIds);
-      if (newIds.length === 0) {
-        toast.info('Tất cả các khách hàng đủ điều kiện đều đã nhận được voucher này rồi!');
-      } else {
-        toast.success(`Đã tự động chọn ${newIds.length} khách hàng đủ điều kiện!`);
+    
+    // Use cached results if available, otherwise fetch
+    let result = autoSelectResult;
+    if (!result) {
+      setAutoSelectLoading(true);
+      try {
+        result = await voucherApi.eligibleUsers(selectedVoucherForDist.voucher_id);
+        setAutoSelectResult(result);
+      } catch {
+        toast.error('Không thể tải danh sách khách hàng đủ điều kiện');
+        setAutoSelectLoading(false);
+        return;
+      } finally {
+        setAutoSelectLoading(false);
       }
-    } catch {
-      toast.error('Không thể tải danh sách khách hàng đủ điều kiện');
-    } finally {
-      setAutoSelectLoading(false);
     }
-  }, [selectedVoucherForDist]);
+
+    const newIds = (result.users || []).filter((u: any) => !u.already_assigned).map((u: any) => u.id);
+    setSelectedCustomers(newIds);
+    if (newIds.length === 0) {
+      toast.info('Tất cả các khách hàng đủ điều kiện đều đã nhận được voucher này rồi!');
+    } else {
+      toast.success(`Đã tự động chọn ${newIds.length} khách hàng đủ điều kiện!`);
+    }
+  }, [selectedVoucherForDist, autoSelectResult]);
 
   const handleDistribute = async () => {
     if (!selectedVoucherForDist || selectedCustomers.length === 0) {
@@ -569,7 +592,7 @@ export default function VoucherListPage() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
               <div className="relative flex-1 w-full">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-slate-400" />
@@ -582,56 +605,101 @@ export default function VoucherListPage() {
                   onChange={(e) => setCustomerSearch(e.target.value)}
                 />
               </div>
-              <Button
-                variant="outline"
-                className="h-11 px-5 w-full sm:w-auto border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100 hover:border-indigo-300 font-bold rounded-xl whitespace-nowrap shadow-sm transition-all active:scale-95"
-                onClick={() => {
-                  const filteredIds = customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).map(c => c.id || c.user_id);
-                  const isAllSelected = filteredIds.length > 0 && filteredIds.every(id => selectedCustomers.includes(id));
-                  if (isAllSelected) {
-                    // Deselect all filtered
-                    setSelectedCustomers(prev => prev.filter(id => !filteredIds.includes(id)));
-                  } else {
-                    // Select all filtered
-                    const newSelected = new Set([...selectedCustomers, ...filteredIds]);
-                    setSelectedCustomers(Array.from(newSelected));
-                  }
-                }}
-              >
-                {customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).length > 0 &&
-                  customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).every(id => selectedCustomers.includes(id.id || id.user_id))
-                  ? "Bỏ chọn tất cả" : "Chọn tất cả"}
-              </Button>
             </div>
 
-            <ScrollArea className="h-[360px] pr-4 -mr-4 rounded-xl">
+            <ScrollArea className="h-[360px] pr-4 -mr-4 rounded-xl relative">
+              {autoSelectLoading && !autoSelectResult && (
+                 <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
+                    <div className="flex flex-col items-center gap-2">
+                       <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                       <span className="text-xs font-bold text-indigo-700">Đang quét điều kiện...</span>
+                    </div>
+                 </div>
+              )}
               <div className="space-y-2 pb-2">
                 {customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).map(c => {
                   const uId = c.id || c.user_id;
                   const isSelected = selectedCustomers.includes(uId);
+                  
+                  // Matching logic using autoSelectResult.users array
+                  const matchInfo = autoSelectResult?.users?.find((u: any) => u.id === uId);
+                  const isEligible = matchInfo !== undefined;
+                  const alreadyAssigned = matchInfo?.already_assigned;
+                  const matchReason = matchInfo?.match_reason;
+
+                  const handleToggle = () => {
+                    if (alreadyAssigned) {
+                      toast.info(`Khách hàng ${c.username} đã sở hữu voucher này rồi.`);
+                      return;
+                    }
+                    if (!isEligible && autoSelectResult) {
+                      toast.warning(`Khách hàng ${c.username} chưa đủ điều kiện nhận voucher này.`);
+                      return;
+                    }
+                    setSelectedCustomers(prev => isSelected ? prev.filter(id => id !== uId) : [...prev, uId]);
+                  };
+
                   return (
                     <div
                       key={uId}
-                      className={`flex items-center gap-4 p-3.5 rounded-2xl cursor-pointer transition-all border-2 group ${isSelected ? 'bg-indigo-50/80 border-indigo-400 shadow-md ring-4 ring-indigo-500/10' : 'bg-white hover:bg-slate-50 border-slate-100 hover:border-indigo-200 shadow-sm'}`}
-                      onClick={() => setSelectedCustomers(prev => isSelected ? prev.filter(id => id !== uId) : [...prev, uId])}
+                      className={`flex items-center gap-4 p-3.5 rounded-2xl transition-all border-2 group relative overflow-hidden ${
+                        isSelected ? 'bg-indigo-50/80 border-indigo-400 shadow-md ring-4 ring-indigo-500/10' : 
+                        (!isEligible && autoSelectResult) || alreadyAssigned ? 'bg-slate-50 border-slate-200/50 cursor-not-allowed border-l-4 border-l-slate-300' :
+                        'bg-white hover:bg-slate-50 border-slate-100 hover:border-indigo-200 shadow-sm cursor-pointer'
+                      }`}
+                      style={(!isEligible && autoSelectResult) || alreadyAssigned ? { 
+                        backgroundImage: 'linear-gradient(135deg, transparent 25%, rgba(0,0,0,0.02) 25%, rgba(0,0,0,0.02) 50%, transparent 50%, transparent 75%, rgba(0,0,0,0.02) 75%, rgba(0,0,0,0.02) 100%)',
+                        backgroundSize: '20px 20px'
+                      } : {}}
+                      onClick={handleToggle}
                     >
-                      <Checkbox id={`customer-${uId}`} checked={isSelected} className={`w-5 h-5 rounded-[6px] transition-all data-[state=checked]:border-indigo-600 data-[state=checked]:bg-indigo-600 ${isSelected ? 'text-white' : 'border-slate-300'}`} />
+                      {(!isEligible && autoSelectResult !== null) || alreadyAssigned ? (
+                        <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <Lock className="w-4 h-4 text-slate-400 opacity-60" />
+                        </div>
+                      ) : (
+                        <Checkbox 
+                          id={`customer-${uId}`} 
+                          checked={isSelected} 
+                          className={`w-5 h-5 rounded-[6px] transition-all data-[state=checked]:border-indigo-600 data-[state=checked]:bg-indigo-600 ${isSelected ? 'text-white' : 'border-slate-300'}`} 
+                        />
+                      )}
 
                       <div className="flex items-center gap-3.5 w-full">
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-black shadow-inner shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors'}`}>
+                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-black shadow-inner shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : ( (!isEligible && autoSelectResult) || alreadyAssigned ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors')}`}>
                           {c.username?.charAt(0).toUpperCase() || 'U'}
                         </div>
-                        <div className="flex flex-col">
-                          <span className={`text-[15px] font-extrabold tracking-tight ${isSelected ? 'text-indigo-900' : 'text-slate-700 group-hover:text-indigo-700 transition-colors'}`}>{c.username}</span>
+                        <div className="flex flex-col flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[15px] font-extrabold tracking-tight ${isSelected ? 'text-indigo-900' : ( (!isEligible && autoSelectResult) || alreadyAssigned ? 'text-slate-400' : 'text-slate-700 group-hover:text-indigo-700 transition-colors')}`}>{c.username}</span>
+                            {isEligible && !alreadyAssigned ? (
+                              <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0 border-none shadow-none ${isSelected ? 'bg-indigo-200/50 text-indigo-700' : 'bg-emerald-50 text-emerald-600'}`}>
+                                <ShieldCheck className="w-3 h-3 mr-1" />
+                                {matchReason || "Đủ điều kiện"}
+                              </Badge>
+                            ) : !isEligible && autoSelectResult && (
+                              <Badge variant="outline" className="text-[10px] font-bold px-2 py-0 border-none bg-red-50 text-red-500 shadow-none">
+                                <ShieldAlert className="w-3 h-3 mr-1" />
+                                Không đủ điều kiện
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className={`text-[12px] font-medium ${isSelected ? 'text-indigo-600/80' : 'text-slate-400'}`}>{c.email}</span>
                             <span className="text-[10px] text-slate-300">&bull;</span>
-                            <span className={`text-[11px] font-semibold ${isSelected ? 'text-indigo-500' : 'text-slate-500'}`}>{c.phone || "Chưa cập nhật SĐT"}</span>
+                            <span className={`text-[11px] font-semibold ${isSelected ? 'text-indigo-50' : 'text-slate-500'}`}>{c.phone || "Chưa cập nhật SĐT"}</span>
                           </div>
                         </div>
+
+                        {alreadyAssigned && (
+                          <div className="absolute top-2 right-2 flex items-center gap-1.5 translate-y-1">
+                             <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Đã sở hữu</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )
+                  );
                 })}
                 {customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 && (
                   <div className="flex flex-col items-center justify-center py-16 text-slate-400">
@@ -655,7 +723,15 @@ export default function VoucherListPage() {
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-tight">Đã chọn phân phối</span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-2xl font-black text-indigo-700 leading-none">{selectedCustomers.length}</span>
-                  <span className="text-[12px] font-bold text-indigo-500/80">Khách hàng</span>
+                  <span className="text-[12px] font-bold text-indigo-500/80 mr-2">Khách hàng</span>
+                  {selectedCustomers.length > 0 && (
+                    <button 
+                      onClick={() => setSelectedCustomers([])}
+                      className="text-[10px] font-bold text-red-500 hover:text-red-600 underline underline-offset-2 uppercase tracking-tight"
+                    >
+                      Bỏ chọn tất cả
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

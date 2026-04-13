@@ -299,7 +299,7 @@ export default function VoucherForm({ initialData, isEdit = false }: VoucherForm
       if (isEdit && initialData?.id) {
         await voucherApi.update(initialData.id, payload)
         toast.success("Cập nhật voucher thành công!")
-        navigate(`/admin/vouchers/detail/${initialData.id}`)
+        navigate("/admin/vouchers/list")
       } else {
         await voucherApi.create(payload)
         toast.success("Tạo voucher thành công!")

@@ -35,7 +35,18 @@ export const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('access_token');
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
-
+export type WalletVoucher = {
+  id: number;
+  code: string;
+  type: string;
+  value: number;
+  max_discount_amount: number;
+  is_used: boolean;
+  start_date: string;
+  expiry_date: string;
+  product_type: string;
+  is_active: boolean;
+};
 export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -94,6 +105,11 @@ export const authApi = {
 export const orderApi = {
   sync: async (payload: unknown) => (await api.post('/orders/sync/', payload)).data,
   cancel: async (payload: unknown) => (await api.post('/orders/cancel/', payload)).data,
+  // ... các hàm cũ
+  placeOrderWithVoucher: async (payload: any) => {
+    // API này sẽ nhận cả thông tin đơn hàng và mã voucher
+    return (await api.post('/vouchers/checkout/', payload)).data;
+  },
 };
 
 export const voucherApi = {
@@ -109,7 +125,7 @@ export const voucherApi = {
   performance: async (params: { start_date: string; end_date: string; ordering?: string }) =>
     (await api.get('/vouchers/stats/performance/', { params })).data,
   list: async () => (await api.get('/vouchers/')).data,
-  create: async (payload: unknown) => (await api.post('/vouchers/create/', payload)).data,
+  create: async (payload: unknown) => (await api.post('/vouchers/create-and-distribute/', payload)).data,
   update: async (id: number, payload: unknown) => (await api.patch(`/vouchers/${id}/`, payload)).data,
   delete: async (id: number) => (await api.delete(`/vouchers/${id}/`)).data,
   distribute: async (payload: unknown) => (await api.post('/vouchers/distribute/', payload)).data,
@@ -135,4 +151,19 @@ export const staffApi = {
   toggleActive: async (userId: number) => (await api.patch(`/users/${userId}/toggle-active/`)).data,
 };
 
+
+// (Bổ sung thêm nếu ní muốn tách riêng mảng Wallet ra cho dễ quản lý)
+export const walletApi = {
+  getMyVouchers: async () => (await api.get('/users/vouchers-for-user/')).data,
+};
+export const userApi = {
+  getMyVouchers: async (): Promise<WalletVoucher[]> => {
+    const response = await api.get('/users/vouchers-for-user/');
+    
+    // Axios trả về response.data
+    // Backend của ní lại bọc array trong biến "data" một lần nữa
+    // Nên phải .data.data thì mới lấy được cái mảng thật sự
+    return response.data.data || response.data; 
+  },
+};
 export default api;

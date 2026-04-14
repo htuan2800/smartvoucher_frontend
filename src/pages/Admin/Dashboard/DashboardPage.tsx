@@ -369,7 +369,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground truncate">{voucher.code}</p>
                   </div>
                   <div className="font-medium text-sm whitespace-nowrap">
-                    {voucher.usage_count} lượt
+                    {voucher.used_count} lượt
                   </div>
                 </div>
               ))}
@@ -460,7 +460,7 @@ export default function DashboardPage() {
                     <div className="text-xs text-muted-foreground">đến {formatDate(item.expiry_date)}</div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {item.usage_count} / {item.quantity}
+                    {item.used_count} / {item.quantity}
                   </TableCell>
                   <TableCell className="text-right">
                     <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${item.usage_rate_percent > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700'}`}>

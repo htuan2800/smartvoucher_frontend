@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { userApi, orderApi } from '@/services/apiService'
 import {
   ArrowLeft,
   MapPin,
@@ -17,20 +18,21 @@ import { useCart } from '@/context/CartContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 
-type Voucher = {
-  id: number
-  code: string
-  title: string
-  type: 'fixed' | 'percent'
-  value: number
-  minSpend: number
-}
-
-const mockVouchers: Voucher[] = [
-  { id: 1, code: 'WELCOME50', title: 'Giảm 50K cho đơn từ 100K', type: 'fixed', value: 50000, minSpend: 100000 },
-  { id: 2, code: 'FREESHIP', title: 'Miễn phí vận chuyển (Tối đa 30K)', type: 'fixed', value: 30000, minSpend: 0 },
-  { id: 3, code: 'VIP10', title: 'Giảm 10% toàn bộ đơn hàng', type: 'percent', value: 10, minSpend: 200000 },
-]
+// 1. Cập nhật Type chuẩn khớp 100% với Backend
+export type WalletVoucher = {
+  id: number;
+  code: string;
+  title?: string;
+  type: string; // 'fixed' hoặc 'percent'
+  value: number;
+  max_discount_amount?: number;
+  min_spend?: number; 
+  is_used: boolean;
+  start_date: string;
+  expiry_date: string;
+  product_type: string;
+  is_active: boolean;
+};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -46,50 +48,164 @@ export default function CheckoutPage() {
   
   // Voucher State
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false)
-  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
+  const [selectedVoucher, setSelectedVoucher] = useState<WalletVoucher | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // State lưu dữ liệu thật từ API
+  const [myVouchers, setMyVouchers] = useState<WalletVoucher[]>([])
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false)
+
+  // Validate Route
   useEffect(() => {
     if (!user) navigate('/login')
     if (cartItems.length === 0) navigate('/shop')
   }, [user, cartItems, navigate])
 
-  // Logic Tính toán Tiền
+  // GỌI API LẤY VÍ VOUCHER KHI VÀO TRANG
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      setIsLoadingVouchers(true)
+      try {
+        const rawData = await userApi.getMyVouchers()
+        
+        let safeArray: WalletVoucher[] = []
+        const data = rawData as any
+        if (Array.isArray(data)) {
+            safeArray = data
+        } else if (data && Array.isArray(data.data)) {
+            safeArray = data.data
+        } else if (data && data.data && Array.isArray(data.data.data)) {
+            safeArray = data.data.data
+        }
+
+        const validVouchers = safeArray.filter((v: WalletVoucher) => v.is_active && !v.is_used)
+        setMyVouchers(validVouchers)
+        
+      } catch (error) {
+        console.error("Chi tiết lỗi API:", error)
+        toast.error('Không thể tải ví Voucher của bạn!')
+      } finally {
+        setIsLoadingVouchers(false)
+      }
+    }
+
+    if (user && isVoucherModalOpen && myVouchers.length === 0) {
+       fetchVouchers()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isVoucherModalOpen])
+
+  // Logic Tính toán Tiền Đã Được Cập Nhật Giống Backend
   const discountAmount = useMemo(() => {
-    if (!selectedVoucher) return 0
-    if (selectedVoucher.type === 'fixed') return selectedVoucher.value
-    if (selectedVoucher.type === 'percent') return (cartTotal * selectedVoucher.value) / 100
-    return 0
-  }, [selectedVoucher, cartTotal])
+    if (!selectedVoucher) return 0;
+
+    // 1. Tính tổng tiền của các món HỢP LỆ (giống eligible_amount ở Backend)
+    let eligibleAmount = 0;
+    if (selectedVoucher.product_type && selectedVoucher.product_type.toLowerCase() !== 'all') {
+      eligibleAmount = cartItems.reduce((total, item) => {
+        // Chỉ cộng tiền những món có product_type khớp với voucher
+        if (item.product_type === selectedVoucher.product_type) {
+          return total + (item.price * item.quantity);
+        }
+        return total;
+      }, 0);
+    } else {
+      // Nếu mã áp dụng cho tất cả
+      eligibleAmount = cartTotal;
+    }
+
+    // 2. Bắt đầu tính tiền giảm dựa trên eligibleAmount
+    if (selectedVoucher.type.toLowerCase() === 'fixed') {
+      return Math.min(selectedVoucher.value, eligibleAmount);
+    }
+    
+    if (selectedVoucher.type.toLowerCase() === 'percent') {
+      let calc = (eligibleAmount * selectedVoucher.value) / 100;
+      if (selectedVoucher.max_discount_amount && calc > selectedVoucher.max_discount_amount) {
+        return selectedVoucher.max_discount_amount;
+      }
+      return calc;
+    }
+    
+    return 0;
+  }, [selectedVoucher, cartItems, cartTotal]);
 
   const finalTotal = cartTotal - discountAmount > 0 ? cartTotal - discountAmount : 0
 
-  // Chọn Voucher
-  const handleSelectVoucher = (voucher: Voucher) => {
-    if (cartTotal < voucher.minSpend) {
-      toast.error(`Đơn hàng chưa đạt mức tối thiểu ${formatCurrency(voucher.minSpend)}`)
+  // ✨ ĐÃ VÁ LỖ HỔNG: CHỌN VOUCHER (LỚP KHÓA 1) ✨
+  const handleSelectVoucher = (voucher: WalletVoucher) => {
+    const minRequired = voucher.min_spend || 0
+    if (cartTotal < minRequired) {
+      toast.error(`Đơn hàng chưa đạt mức tối thiểu ${formatCurrency(minRequired)}`)
       return
     }
+
+    // Kiểm tra xem trong giỏ hàng có món đồ nào khớp loại yêu cầu không
+    if (voucher.product_type && voucher.product_type.toLowerCase() !== 'all') {
+      const hasRequiredType = cartItems.some(item => item.product_type === voucher.product_type);
+      if (!hasRequiredType) {
+        toast.error(`Mã giảm giá này chỉ áp dụng cho sản phẩm loại: ${voucher.product_type}`);
+        return;
+      }
+    }
+
     setSelectedVoucher(voucher)
     setIsVoucherModalOpen(false)
   }
 
-  // Xử lý Đặt hàng
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!formData.phone || !formData.address) {
-      alert('Vui lòng điền đầy đủ số điện thoại và địa chỉ nhận hàng!')
-      return
+      toast.error('Vui lòng điền đầy đủ số điện thoại và địa chỉ nhận hàng!');
+      return;
     }
-    
-    setIsProcessing(true)
-    
-    setTimeout(() => {
-      setIsProcessing(false)
-      clearCart() // Đặt hàng xong thì xóa sạch giỏ hàng
-      toast.success('Đặt hàng thành công! Mã đơn của bạn là #ORD-' + Math.floor(Math.random() * 10000))
-      navigate('/shop')
-    }, 2000)
-  }
+  
+    setIsProcessing(true);
+  
+    try {
+      const orderPayload = {
+        external_order_id: `ORD-${Date.now()}`, 
+        user_id: user?.id,
+        status: "pending",
+        total_amount: cartTotal,
+        items: cartItems.map(item => ({
+          name: item.name,
+          product_type: item.product_type, // "food" hoặc "beverage" để Backend check Voucher
+          quantity: item.quantity,
+          unit_price: item.price
+        })),
+        voucher_code: selectedVoucher ? selectedVoucher.code : null 
+      };
+  
+      const response = await orderApi.placeOrderWithVoucher(orderPayload);
+  
+      toast.success(`Đặt hàng thành công! Mã đơn: ${response.external_order_id}`);
+      clearCart();
+      navigate('/shop/success'); 
+  
+    } catch (error: any) {
+      console.error("Lỗi đặt hàng chi tiết:", error.response?.data);
+      
+      // ✨ NÂNG CẤP TRÍ TUỆ BÁO LỖI (Bóc trần sự thật từ Django) ✨
+      let errorMsg = 'Đặt hàng thất bại, vui lòng thử lại!';
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (data.message) {
+          errorMsg = data.message;
+        } else if (data.detail) {
+          errorMsg = data.detail;
+        } else if (Array.isArray(data)) {
+          errorMsg = data[0]; 
+        } else if (typeof data === 'object') {
+          errorMsg = Object.values(data)[0] as string;
+        } else if (typeof data === 'string') {
+          errorMsg = data;
+        }
+      }
+      toast.error(`❌ ${errorMsg}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#020617] text-white font-sans selection:bg-cyan-500/30 pb-24">
@@ -232,19 +348,16 @@ export default function CheckoutPage() {
       <AnimatePresence>
         {isVoucherModalOpen && (
           <>
-            {/* Lớp nền mờ (Backdrop) */}
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsVoucherModalOpen(false)}
               className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             />
             
-            {/* Khung Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-md bg-[#020617] border border-white/10 rounded-[2.5rem] shadow-2xl shadow-cyan-900/50 overflow-hidden flex flex-col max-h-[80vh]"
             >
-              {/* Header Modal */}
               <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
                 <h3 className="text-xl font-bold flex items-center gap-2">
                   <Ticket className="w-5 h-5 text-cyan-400" /> Smart Voucher
@@ -254,10 +367,33 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {/* Danh sách Voucher (Scrollable) */}
               <div className="p-6 overflow-y-auto flex-1 space-y-4 custom-scrollbar">
-                {mockVouchers.map((voucher) => {
-                  const isEligible = cartTotal >= voucher.minSpend
+                
+                {isLoadingVouchers && (
+                   <div className="flex justify-center items-center py-10">
+                      <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                   </div>
+                )}
+
+                {!isLoadingVouchers && myVouchers.length === 0 && (
+                   <div className="text-center py-10 text-slate-400">
+                      Ví của bạn hiện chưa có mã giảm giá nào.
+                   </div>
+                )}
+
+                {!isLoadingVouchers && myVouchers.map((voucher) => {
+                  const minRequired = voucher.min_spend || 0
+                  
+                  // ✨ ĐÃ VÁ LỖ HỔNG: HIỂN THỊ UI XÁM XỊT (LỚP KHÓA 2) ✨
+                  let hasRequiredType = true;
+                  if (voucher.product_type && voucher.product_type.toLowerCase() !== 'all') {
+                    // Quét xem giỏ hàng có món nào khớp loại không
+                    hasRequiredType = cartItems.some(item => item.product_type === voucher.product_type);
+                  }
+
+                  // Đạt điều kiện = Đủ tiền + CÓ món đồ khớp loại
+                  const isEligible = (cartTotal >= minRequired) && hasRequiredType;
+                  
                   const isSelected = selectedVoucher?.id === voucher.id
 
                   return (
@@ -270,7 +406,18 @@ export default function CheckoutPage() {
                             ? 'bg-white/[0.03] border-white/10 hover:border-white/30 cursor-pointer' 
                             : 'bg-white/[0.01] border-white/5 opacity-50 grayscale cursor-not-allowed'
                       }`}
-                      onClick={() => isEligible && handleSelectVoucher(voucher)}
+                      onClick={() => {
+                          if (isEligible) {
+                            handleSelectVoucher(voucher);
+                          } else {
+                            // Cố tình bấm vào sẽ bị chửi vỗ mặt
+                            if (!hasRequiredType) {
+                              toast.error(`Mã này chỉ áp dụng cho loại: ${voucher.product_type}`);
+                            } else {
+                              toast.error(`Đơn hàng chưa đạt mức tối thiểu ${formatCurrency(minRequired)}`);
+                            }
+                          }
+                      }}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <span className="inline-block px-3 py-1 bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
@@ -278,12 +425,15 @@ export default function CheckoutPage() {
                         </span>
                         {isSelected && <CheckCircle2 className="w-5 h-5 text-cyan-400" />}
                       </div>
-                      <h4 className="font-bold text-white mb-1">{voucher.title}</h4>
+                      <h4 className="font-bold text-white mb-1">
+                        {voucher.title || (voucher.type === 'percent' ? `Giảm ${voucher.value}%` : `Giảm ${formatCurrency(voucher.value)}`)}
+                      </h4>
                       <p className="text-xs text-slate-400 font-medium">
-                        Đơn tối thiểu: {formatCurrency(voucher.minSpend)}
+                        Đơn tối thiểu: {formatCurrency(minRequired)}
                       </p>
-                      
-                      {/* Vết cắt trang trí (Răng cưa voucher) */}
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">
+                        Áp dụng: <span className="text-cyan-400">{voucher.product_type || "All"}</span>
+                      </p>
                       <div className="absolute top-1/2 -left-2 -translate-y-1/2 w-4 h-4 bg-[#020617] rounded-full border-r border-white/10" />
                       <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-4 bg-[#020617] rounded-full border-l border-white/10" />
                     </div>
@@ -291,7 +441,6 @@ export default function CheckoutPage() {
                 })}
               </div>
 
-              {/* Footer Modal (Bỏ chọn) */}
               {selectedVoucher && (
                 <div className="p-4 border-t border-white/10 bg-white/[0.02]">
                   <Button 

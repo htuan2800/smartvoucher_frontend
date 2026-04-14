@@ -15,16 +15,19 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ConfirmModal } from '@/components/layout/admin/confirmModal';
 import { API_BASE_URL, authFetch } from '@/services/apiService';
-import { Calendar, Clock, Edit, Eye, Lock, Mail, Plus, RefreshCw, Search, ShieldCheck, Star, Trash2, Unlock, UserCircle, UserPlus, Users, Wallet } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, History, Mail, PauseCircle, Phone, PlayCircle, Plus, RefreshCw, Search, ShieldCheck, Star, Trash2, UserCircle, UserPlus, Users, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import VoucherHistoryModal from '@/components/admin/vouchers/VoucherHistoryModal';
 
 interface Customer {
   id: number;
   username: string;
   email: string;
+  phone: string | null;
   role: string;
   is_active: boolean;
   points: number;
@@ -47,8 +50,13 @@ export default function CustomerListPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false);
+  const [toggleTarget, setToggleTarget] = useState<Customer | null>(null);
+  const [toggleLoading, setToggleLoading] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -57,6 +65,7 @@ export default function CustomerListPage() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     points: 0,
@@ -64,6 +73,10 @@ export default function CustomerListPage() {
   });
 
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyUserId, setHistoryUserId] = useState<number | null>(null);
+  const [historyUserName, setHistoryUserName] = useState("");
 
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
@@ -124,13 +137,17 @@ export default function CustomerListPage() {
     fetchCustomers();
   }, [page, pageSize, debouncedSearch]);
 
-  const handleToggleActive = async (customerId: number, currentActive: boolean) => {
+  const handleToggleActive = async () => {
+    if (!toggleTarget) return;
+    setToggleLoading(true);
     try {
-      const res = await authFetch(`${API_BASE_URL}/users/${customerId}/toggle-active/`, {
+      const res = await authFetch(`${API_BASE_URL}/users/${toggleTarget.id}/toggle-active/`, {
         method: 'PATCH',
       });
       if (res.ok) {
-        toast.success(currentActive ? 'Đã vô hiệu hóa tài khoản' : 'Đã kích hoạt tài khoản');
+        toast.success(toggleTarget.is_active ? 'Đã vô hiệu hóa tài khoản' : 'Đã kích hoạt tài khoản');
+        setToggleConfirmOpen(false);
+        setToggleTarget(null);
         fetchCustomers();
       } else {
         const err = await res.json();
@@ -138,24 +155,32 @@ export default function CustomerListPage() {
       }
     } catch {
       toast.error('Lỗi kết nối server');
+    } finally {
+      setToggleLoading(false);
     }
   };
 
+  const confirmToggle = (c: Customer) => {
+    setToggleTarget(c);
+    setToggleConfirmOpen(true);
+  };
+
   const confirmDelete = (c: Customer) => {
-    setCustomerToDelete(c);
-    setDeleteOpen(true);
+    setDeleteTarget(c);
+    setDeleteConfirmOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!customerToDelete) return;
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      const res = await authFetch(`${API_BASE_URL}/users/${customerToDelete.id}/`, {
+      const res = await authFetch(`${API_BASE_URL}/users/${deleteTarget.id}/`, {
         method: 'DELETE',
       });
       if (res.ok) {
-        toast.success('Đã xóa (vô hiệu hóa) khách hàng thành công');
-        setDeleteOpen(false);
-        setCustomerToDelete(null);
+        toast.success('Đã xóa khách hàng thành công');
+        setDeleteConfirmOpen(false);
+        setDeleteTarget(null);
         fetchCustomers();
       } else {
         const err = await res.json();
@@ -163,6 +188,8 @@ export default function CustomerListPage() {
       }
     } catch {
       toast.error('Lỗi server');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -210,6 +237,7 @@ export default function CustomerListPage() {
     setFormData({
       username: c.username,
       email: c.email,
+      phone: c.phone || '',
       password: '',
       confirmPassword: '',
       points: c.points,
@@ -225,6 +253,7 @@ export default function CustomerListPage() {
     setFormData({
       username: '',
       email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
       points: 0,
@@ -269,7 +298,10 @@ export default function CustomerListPage() {
         {/* Table Header Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border-b border-slate-100">
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-slate-800">Danh sách Khách hàng</h3>
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-500" />
+              Danh sách Khách hàng
+            </h3>
             <p className="text-sm text-slate-500 font-medium">Quản lý toàn bộ thông tin tài khoản và điểm tích lũy</p>
           </div>
           <div className="flex items-center gap-4 w-full sm:w-auto mt-2 sm:mt-0">
@@ -302,6 +334,7 @@ export default function CustomerListPage() {
               <TableRow className="hover:bg-transparent border-slate-50 h-20">
                 <TableHead className="font-black text-slate-600 pl-6 uppercase text-[12px] tracking-widest">Khách hàng</TableHead>
                 <TableHead className="font-black text-slate-600 uppercase text-[12px] tracking-widest">Email liên hệ</TableHead>
+                <TableHead className="font-black text-slate-600 uppercase text-[12px] tracking-widest">Số điện thoại</TableHead>
                 <TableHead className="font-black text-slate-600 uppercase text-[12px] tracking-widest text-right">Tích lũy</TableHead>
                 <TableHead className="font-black text-slate-600 uppercase text-[12px] tracking-widest text-right">Tổng chi tiêu</TableHead>
                 <TableHead className="font-black text-slate-600 uppercase text-[12px] tracking-widest text-center">Trạng thái</TableHead>
@@ -312,7 +345,7 @@ export default function CustomerListPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i} className="animate-pulse h-20 border-slate-50">
-                    <TableCell colSpan={6} className="bg-slate-50/10 h-20"></TableCell>
+                    <TableCell colSpan={7} className="bg-slate-50/10 h-20"></TableCell>
                   </TableRow>
                 ))
               ) : customers.length > 0 ? (
@@ -330,6 +363,16 @@ export default function CustomerListPage() {
                       <div className="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100/60 font-mono text-[13px] font-bold text-[#5a46e5] tracking-wider shadow-sm">
                         {c.email}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {c.phone ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-100/60 font-mono text-[13px] font-bold text-emerald-700 tracking-wider shadow-sm">
+                          <Phone className="w-3.5 h-3.5" />
+                          {c.phone}
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 text-xs font-medium italic">Chưa cập nhật</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 font-black text-[13px] border border-amber-200/50 shadow-sm">
@@ -367,6 +410,18 @@ export default function CustomerListPage() {
                           <Eye className="w-4 h-4" />
                         </Button>
                         <Button
+                          variant="ghost" size="icon" title="Lịch sử Voucher"
+                          className="w-9 h-9 rounded-xl text-[#5a46e5] bg-indigo-50/50 hover:bg-indigo-100 hover:text-indigo-700 transition-all shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHistoryUserId(c.id);
+                            setHistoryUserName(c.username);
+                            setHistoryOpen(true);
+                          }}
+                        >
+                          <History className="w-4 h-4" />
+                        </Button>
+                        <Button
                           variant="ghost" size="icon" title="Sửa thông tin"
                           className="w-9 h-9 rounded-xl text-blue-600 bg-blue-50/50 hover:bg-blue-100 hover:text-blue-700 transition-all shadow-sm"
                           onClick={(e) => { e.stopPropagation(); openEdit(c); }}
@@ -374,16 +429,16 @@ export default function CustomerListPage() {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          variant="ghost" size="icon" title={c.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                          variant="ghost" size="icon" title={c.is_active ? "Tạm dừng" : "Mở lại"}
                           className={cn(
                             "w-9 h-9 rounded-xl transition-all shadow-sm",
                             c.is_active
                               ? "text-amber-600 bg-amber-50/50 hover:bg-amber-100 hover:text-amber-700"
                               : "text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 hover:text-emerald-700"
                           )}
-                          onClick={(e) => { e.stopPropagation(); handleToggleActive(c.id, c.is_active); }}
+                          onClick={(e) => { e.stopPropagation(); confirmToggle(c); }}
                         >
-                          {c.is_active ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                          {c.is_active ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
                         </Button>
                         <Button
                           variant="ghost" size="icon" title="Xóa tài khoản"
@@ -398,7 +453,7 @@ export default function CustomerListPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-32">
+                  <TableCell colSpan={7} className="text-center py-32">
                     <Users className="w-16 h-16 text-slate-100 mx-auto mb-4" />
                     <p className="text-slate-400 font-bold italic text-sm uppercase tracking-widest">Không có dữ liệu phù hợp</p>
                   </TableCell>
@@ -499,6 +554,19 @@ export default function CustomerListPage() {
                   />
                 </div>
                 {formErrors.email && <p className="text-sm font-bold text-rose-500 animate-in slide-in-from-top-1 pl-2">{formErrors.email}</p>}
+              </div>
+
+              <div className="space-y-2 col-span-1 md:col-span-2">
+                <Label className="text-xs font-black uppercase text-slate-500 tracking-widest pl-1">Số điện thoại</Label>
+                <div className="relative group">
+                  <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <Input
+                    type="tel" placeholder="VD: 0912345678"
+                    className="h-14 bg-white border-2 border-slate-200 hover:border-emerald-300 focus:border-emerald-500 rounded-2xl pl-14 pr-6 focus:ring-4 focus:ring-emerald-500/10 font-bold text-lg transition-all shadow-sm"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
               </div>
 
               {formMode === 'create' && (
@@ -612,6 +680,12 @@ export default function CustomerListPage() {
                   <Mail className="w-5 h-5 text-indigo-500 shrink-0" />
                   {detailCustomer?.email}
                 </p>
+                {detailCustomer?.phone && (
+                  <p className="text-base md:text-lg text-slate-500 font-bold flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-emerald-500 shrink-0" />
+                    {detailCustomer.phone}
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4 md:gap-6">
                 <div className="bg-slate-50 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
@@ -672,24 +746,36 @@ export default function CustomerListPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="w-[90vw] sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white rounded-[2rem] p-8 border-none shadow-2xl outline-none">
-          <div className="flex flex-col items-center text-center space-y-6">
-            <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center shadow-inner">
-              <Trash2 className="w-10 h-10" />
-            </div>
-            <div>
-              <DialogTitle className="text-2xl font-black text-slate-800 mb-2">Xác nhận vô hiệu hóa</DialogTitle>
-              <p className="text-slate-500 font-medium break-words">Bạn có chắc chắn muốn xóa khách hàng <span className="font-bold text-rose-600 break-all">{customerToDelete?.username}</span> không? Hành động này sẽ khóa tài khoản ngay lập tức.</p>
-            </div>
-            <div className="flex flex-col sm:flex-row w-full gap-4 pt-4 border-t border-slate-100">
-              <Button variant="outline" className="w-full sm:flex-1 h-12 rounded-xl border-slate-200 font-bold text-slate-600 hover:bg-slate-50" onClick={() => setDeleteOpen(false)}>Hủy bỏ</Button>
-              <Button className="w-full sm:flex-1 h-12 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black shadow-lg shadow-rose-200" onClick={handleDelete}>Xóa ngay</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmModal
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Xác nhận xóa khách hàng"
+        description={`Bạn có chắc chắn muốn xóa khách hàng ${deleteTarget?.username}? Tài khoản này sẽ bị vô hiệu hóa vĩnh viễn.`}
+        confirmText="Đồng ý xóa"
+        isLoading={deleteLoading}
+        onConfirm={handleDelete}
+      />
+
+      <ConfirmModal
+        open={toggleConfirmOpen}
+        onOpenChange={setToggleConfirmOpen}
+        title={toggleTarget?.is_active ? "Xác nhận tạm dừng" : "Xác nhận mở lại"}
+        description={toggleTarget?.is_active
+          ? `Bạn có muốn tạm dừng tài khoản ${toggleTarget?.username}? Khách hàng sẽ không thể đăng nhập cho đến khi được mở lại.`
+          : `Bạn có muốn kích hoạt lại tài khoản ${toggleTarget?.username}?`
+        }
+        confirmText={toggleTarget?.is_active ? "Tạm dừng ngay" : "Mở lại ngay"}
+        variant={toggleTarget?.is_active ? "warning" : "info"}
+        isLoading={toggleLoading}
+        onConfirm={handleToggleActive}
+      />
+
+      <VoucherHistoryModal
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        userId={historyUserId}
+        userName={historyUserName}
+      />
     </div>
   );
 }

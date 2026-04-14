@@ -29,6 +29,8 @@ import {
 import { API_BASE_URL, authFetch } from '@/services/apiService';
 import { ArrowLeft, CheckCircle, XCircle, Search, Users, Activity, Ticket, Calendar, Filter, Eye, Trash2, ChevronLeft, ChevronRight, User, Mail, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import VoucherHistoryModal from '@/components/admin/vouchers/VoucherHistoryModal';
+import { History } from 'lucide-react';
 
 interface VoucherInfo {
   id: number;
@@ -84,6 +86,10 @@ export default function VoucherRecipientsPage() {
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyUserId, setHistoryUserId] = useState<number | null>(null);
+  const [historyUserName, setHistoryUserName] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -360,6 +366,20 @@ export default function VoucherRecipientsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Lịch sử Voucher"
+                            className="text-[#5a46e5] bg-indigo-50/50 hover:bg-indigo-100 hover:text-indigo-700 font-medium rounded-xl transition-all h-8 w-8 shadow-sm border border-transparent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setHistoryUserId(r.user_id);
+                              setHistoryUserName(r.username);
+                              setHistoryOpen(true);
+                            }}
+                          >
+                            <History className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             title="Gỡ bỏ"
                             className="text-red-500 bg-red-50 hover:bg-red-100 hover:text-red-600 font-medium rounded-xl transition-all h-8 w-8 shadow-sm border border-transparent"
                             onClick={() => {
@@ -549,6 +569,13 @@ export default function VoucherRecipientsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <VoucherHistoryModal 
+        open={historyOpen} 
+        onOpenChange={setHistoryOpen} 
+        userId={historyUserId} 
+        userName={historyUserName}
+      />
     </div>
   );
 }

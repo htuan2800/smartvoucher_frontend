@@ -9,6 +9,7 @@ import StaffListPage from './pages/Admin/Staffs/StaffListPage'
 import VoucherCreatePage from './pages/Admin/Vouchers/VoucherCreatePage'
 import VoucherEditPage from './pages/Admin/Vouchers/VoucherEditPage'
 import VoucherDetailPage from './pages/Admin/Vouchers/VoucherDetailPage'
+import VoucherDeliveryLogPage from './pages/Admin/Vouchers/VoucherDeliveryLogPage'
 import CustomerListPage from './pages/Admin/Customers/CustomerListPage'
 import HomePage from './pages/Public/HomePage'
 import RegisterPage from './pages/Public/RegisterPage'
@@ -70,6 +71,7 @@ function AppRoutes() {
           <Route path="vouchers/:voucherId/edit" element={<VoucherEditPage />} />
           <Route path="vouchers/:voucherId/detail" element={<VoucherDetailPage />} />
           <Route path="vouchers/:voucherId/recipients" element={<VoucherRecipientsPage />} />
+          <Route path="vouchers/:voucherId/delivery-logs" element={<VoucherDeliveryLogPage />} />
           <Route path="staffs/list" element={<StaffListPage />} />
           <Route path="customers/list" element={<CustomerListPage />} />
           <Route path="settings" element={<AdminPlaceholderPage title="Cài đặt hệ thống" />} />

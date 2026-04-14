@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -17,7 +17,6 @@ import { useAuth } from '@/context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '@/context/CartContext'
 
-
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
@@ -27,7 +26,6 @@ export default function CartPage() {
   const navigate = useNavigate()
   
   const { cartItems, cartTotal, updateQuantity, removeItem } = useCart()
-  // Các hàm xử lý giỏ hàng
 
   // Tính toán tổng tiền
   const subTotal = useMemo(() => {
@@ -89,7 +87,7 @@ export default function CartPage() {
         
         {/* Nút Quay Lại */}
         <button 
-          onClick={() => navigate('/shop')} // Sửa lại đường dẫn thành trang Shop của bạn
+          onClick={() => navigate('/shop')} 
           className="group flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors mb-8"
         >
           <div className="p-2 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
@@ -106,7 +104,7 @@ export default function CartPage() {
         </div>
 
         {/* ==========================================
-            TRẠNG THÁI 2: GIỎ HÀNG TRỐNG
+            TRẠNG THÁI 1: GIỎ HÀNG TRỐNG
             ========================================== */}
         {cartItems.length === 0 ? (
           <motion.div 
@@ -130,7 +128,7 @@ export default function CartPage() {
         ) : (
 
           /* ==========================================
-             TRẠNG THÁI 3: GIỎ HÀNG CÓ SẢN PHẨM
+             TRẠNG THÁI 2: GIỎ HÀNG CÓ SẢN PHẨM
              ========================================== */
           <div className="grid lg:grid-cols-12 gap-10">
             
@@ -146,9 +144,9 @@ export default function CartPage() {
                     exit={{ opacity: 0, scale: 0.9, x: -50 }}
                     className="flex items-center gap-6 p-4 pr-6 rounded-3xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] transition-colors group"
                   >
-                    {/* Ảnh Thumbnail Icon */}
+                    {/* ✨ Ảnh Thumbnail Icon - Sửa điều kiện thành 'candy' */}
                     <div className={`w-24 h-24 shrink-0 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-inner`}>
-                      {item.type === 'candy' ? <Candy className="w-10 h-10 text-white/70" /> : <Coffee className="w-10 h-10 text-white/70" />}
+                      {item.product_type === 'candy' ? <Candy className="w-10 h-10 text-white/70" /> : <Coffee className="w-10 h-10 text-white/70" />}
                     </div>
 
                     {/* Thông tin SP */}
@@ -163,7 +161,10 @@ export default function CartPage() {
                         </button>
                       </div>
                       
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{item.type}</p>
+                      {/* ✨ Label loại sản phẩm - Đã dịch sang Tiếng Việt */}
+                      <p className="text-[10px] font-black uppercase tracking-wider text-cyan-500 mb-4">
+                        {item.product_type === 'candy' ? 'Bánh Ngọt / Kẹo' : 'Thức Uống'}
+                      </p>
                       
                       <div className="flex items-center justify-between mt-auto">
                         <div className="text-lg font-black text-white">
@@ -205,10 +206,6 @@ export default function CartPage() {
                     <span>Tạm tính</span>
                     <span className="text-white">{formatCurrency(subTotal)}</span>
                   </div>
-                  {/* <div className="flex justify-between items-center text-emerald-400">
-                    <span>Giảm giá Voucher</span>
-                    <span>- {formatCurrency(discount)}</span>
-                  </div> */}
                 </div>
 
                 <div className="h-px w-full bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6" />

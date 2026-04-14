@@ -20,30 +20,29 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '@/context/CartContext'
 import { toast } from 'sonner'
 
-// --- MOCK DATA ---
+// --- MOCK DATA & TYPE ---
 type Product = {
     id: number
     name: string
     description: string
     price: number
-    type: 'candy' | 'drink'
+    product_type: 'candy' | 'drink'
     color: string
 }
 
 const mockProducts: Product[] = [
-    { id: 1, name: 'Kẹo Dẻo 123', description: 'Vị trái cây chua ngọt bùng nổ, dẻo mềm tan trong miệng.', price: 25000, type: 'candy', color: 'from-pink-500 to-rose-500' },
-    { id: 2, name: 'Trà Sữa 123', description: 'Trà đen đậm vị kết hợp trân châu đường đen trứ danh.', price: 45000, type: 'drink', color: 'from-amber-500 to-orange-600' },
-    { id: 3, name: 'Sô-cô-la 123', description: 'Đắng nhẹ, thơm nồng từ 85% cacao nguyên chất.', price: 65000, type: 'candy', color: 'from-slate-700 to-slate-900' },
-    { id: 4, name: 'Nước Tăng 123', description: 'Giải khát tức thì, nạp năng lượng cho ngày dài.', price: 30000, type: 'drink', color: 'from-cyan-400 to-blue-600' },
-    { id: 5, name: 'Kẹo Nổ 123', description: 'Trải nghiệm nổ lách tách cực vui nhộn khi ngậm.', price: 15000, type: 'candy', color: 'from-purple-500 to-indigo-500' },
-    { id: 6, name: 'Sinh Tố 123', description: 'Xoài, dâu tây và việt quất xay nhuyễn mát lạnh.', price: 55000, type: 'drink', color: 'from-emerald-400 to-teal-500' },
-
-    { id: 7, name: 'Kẹo Dẻo ABC', description: 'Vị trái cây chua ngọt bùng nổ, dẻo mềm tan trong miệng.', price: 25000, type: 'candy', color: 'from-pink-500 to-rose-500' },
-    { id: 8, name: 'Trà Sữa ABC', description: 'Trà đen đậm vị kết hợp trân châu đường đen trứ danh.', price: 45000, type: 'drink', color: 'from-amber-500 to-orange-600' },
-    { id: 9, name: 'Sô-cô-la ABC', description: 'Đắng nhẹ, thơm nồng từ 85% cacao nguyên chất.', price: 65000, type: 'candy', color: 'from-slate-700 to-slate-900' },
-    { id: 10, name: 'Nước Tăng ABC', description: 'Giải khát tức thì, nạp năng lượng cho ngày dài.', price: 30000, type: 'drink', color: 'from-cyan-400 to-blue-600' },
-    { id: 11, name: 'Kẹo Nổ ABC', description: 'Trải nghiệm nổ lách tách cực vui nhộn khi ngậm.', price: 15000, type: 'candy', color: 'from-purple-500 to-indigo-500' },
-    { id: 12, name: 'Sinh Tố ABC', description: 'Xoài, dâu tây và việt quất xay nhuyễn mát lạnh.', price: 55000, type: 'drink', color: 'from-emerald-400 to-teal-500' },
+    { id: 1, name: 'Kẹo Dẻo 123', description: 'Vị trái cây chua ngọt bùng nổ, dẻo mềm tan trong miệng.', price: 25000, product_type: 'candy', color: 'from-pink-500 to-rose-500' },
+    { id: 2, name: 'Trà Sữa 123', description: 'Trà đen đậm vị kết hợp trân châu đường đen trứ danh.', price: 45000, product_type: 'drink', color: 'from-amber-500 to-orange-600' },
+    { id: 3, name: 'Sô-cô-la 123', description: 'Đắng nhẹ, thơm nồng từ 85% cacao nguyên chất.', price: 65000, product_type: 'candy', color: 'from-slate-700 to-slate-900' },
+    { id: 4, name: 'Nước Tăng 123', description: 'Giải khát tức thì, nạp năng lượng cho ngày dài.', price: 30000, product_type: 'drink', color: 'from-cyan-400 to-blue-600' },
+    { id: 5, name: 'Kẹo Nổ 123', description: 'Trải nghiệm nổ lách tách cực vui nhộn khi ngậm.', price: 15000, product_type: 'candy', color: 'from-purple-500 to-indigo-500' },
+    { id: 6, name: 'Sinh Tố 123', description: 'Xoài, dâu tây và việt quất xay nhuyễn mát lạnh.', price: 55000, product_type: 'drink', color: 'from-emerald-400 to-teal-500' },
+    { id: 7, name: 'Kẹo Dẻo ABC', description: 'Vị trái cây chua ngọt bùng nổ, dẻo mềm tan trong miệng.', price: 25000, product_type: 'candy', color: 'from-pink-500 to-rose-500' },
+    { id: 8, name: 'Trà Sữa ABC', description: 'Trà đen đậm vị kết hợp trân châu đường đen trứ danh.', price: 45000, product_type: 'drink', color: 'from-amber-500 to-orange-600' },
+    { id: 9, name: 'Sô-cô-la ABC', description: 'Đắng nhẹ, thơm nồng từ 85% cacao nguyên chất.', price: 65000, product_type: 'candy', color: 'from-slate-700 to-slate-900' },
+    { id: 10, name: 'Nước Tăng ABC', description: 'Giải khát tức thì, nạp năng lượng cho ngày dài.', price: 30000, product_type: 'drink', color: 'from-cyan-400 to-blue-600' },
+    { id: 11, name: 'Kẹo Nổ ABC', description: 'Trải nghiệm nổ lách tách cực vui nhộn khi ngậm.', price: 15000, product_type: 'candy', color: 'from-purple-500 to-indigo-500' },
+    { id: 12, name: 'Sinh Tố ABC', description: 'Xoài, dâu tây và việt quất xay nhuyễn mát lạnh.', price: 55000, product_type: 'drink', color: 'from-emerald-400 to-teal-500' },
 ]
 
 const formatCurrency = (value: number) => {
@@ -54,12 +53,11 @@ export default function ShopPage() {
     const navigate = useNavigate()
     const { user, logout } = useAuth()
     const { cartCount, addToCart } = useCart()
-    // State quản lý Menu User
+    
     const [isOpen, setIsOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
     const [activeFilter, setActiveFilter] = useState<'all' | 'candy' | 'drink'>('all')
 
-    // Xử lý click ra ngoài menu User để đóng
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -70,19 +68,25 @@ export default function ShopPage() {
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    // Hàm xử lý thêm vào giỏ
-    const handleAddToCart = (product: any) => {
-        addToCart(product);
+    // ✨ ĐIỂM SỬA QUAN TRỌNG NHẤT: Map dữ liệu chuẩn Backend
+    const handleAddToCart = (product: Product) => {
+        addToCart({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            // Chuyển ngôn ngữ Frontend sang Backend
+            product_type: product.product_type,
+            color: product.color 
+        });
         toast.success(`Đã thêm ${product.name} vào giỏ hàng!`)
     }
 
-    // Lọc sản phẩm
-    const filteredProducts = mockProducts.filter(p => activeFilter === 'all' ? true : p.type === activeFilter)
+    const filteredProducts = mockProducts.filter(p => activeFilter === 'all' ? true : p.product_type === activeFilter)
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden bg-[#020617] text-white font-sans selection:bg-cyan-500/30 pb-20">
 
-            {/* Premium Aurora Background (Giữ nguyên từ Home) */}
+            {/* Premium Aurora Background */}
             <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
                 <motion.div
                     animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
@@ -121,7 +125,7 @@ export default function ShopPage() {
                     </Link>
 
                     <div className="flex items-center gap-6">
-                        {/* Giỏ hàng (Hiển thị cho mọi user) */}
+                        {/* Giỏ hàng */}
                         <div className="relative cursor-pointer group">
                             <div className="p-2.5 bg-white/5 border border-white/10 rounded-full group-hover:bg-white/10 transition-colors" onClick={() => { if (cartCount > 0) navigate('/shop/cart') }}>
                                 <ShoppingCart className="w-5 h-5 text-slate-300 group-hover:text-cyan-400 transition-colors" />
@@ -152,7 +156,6 @@ export default function ShopPage() {
                             </div>
                         ) : (
                             <div className="relative" ref={menuRef}>
-                                {/* Nút User */}
                                 <button
                                     onClick={() => setIsOpen(!isOpen)}
                                     className="flex items-center gap-3 h-11 px-2 md:px-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all duration-300 rounded-full focus:outline-none"
@@ -166,7 +169,6 @@ export default function ShopPage() {
                                     <ChevronDown className={`w-4 h-4 transition-transform duration-300 hidden md:block ${isOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
-                                {/* Dropdown Menu */}
                                 <AnimatePresence>
                                     {isOpen && (
                                         <motion.div
@@ -257,11 +259,11 @@ export default function ShopPage() {
                             >
                                 {/* Ảnh Placeholder với Gradient */}
                                 <div className={`w-full h-48 rounded-2xl mb-6 bg-gradient-to-br ${product.color} flex items-center justify-center shadow-inner relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500`}>
-                                    {product.type === 'candy' ? <Candy className="w-16 h-16 text-white/50" /> : <Coffee className="w-16 h-16 text-white/50" />}
+                                    {product.product_type === 'candy' ? <Candy className="w-16 h-16 text-white/50" /> : <Coffee className="w-16 h-16 text-white/50" />}
 
                                     {/* Label loại sản phẩm */}
                                     <div className="absolute top-3 left-3 px-3 py-1 bg-black/30 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-black uppercase tracking-wider text-white">
-                                        {product.type === 'candy' ? 'Candy' : 'Drink'}
+                                        {product.product_type === 'candy' ? 'Candy' : 'Drink'}
                                     </div>
                                 </div>
 

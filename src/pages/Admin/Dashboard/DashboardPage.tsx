@@ -36,6 +36,9 @@ import { Ticket, Percent, TrendingUp, DollarSign } from "lucide-react";
 import { API_BASE_URL, authFetch } from '@/services/apiService';
 import { DatePickerWithRange } from './DateRangePicker';
 import { useNavigate } from 'react-router-dom';
+import { ExportDropdown } from '@/components/admin/common/ExportDropdown';
+import { exportMultiSheetExcel, exportToCSV } from '@/utils/downloadUtils';
+import { toast } from 'sonner';
 
 // --- UTILS ---
 const formatCurrency = (value: number) => {
@@ -71,6 +74,7 @@ export default function DashboardPage() {
   const [chart, setChart] = useState<any[]>([]);
   const [topVouchers, setTopVouchers] = useState({ most_used: [], highest_revenue: [], highest_usage_rate: [], highest_discount_amount: [], highest_revenue_impacted: [] });
   const [performance, setPerformance] = useState<any[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // 3. (Mô phỏng useEffect gọi API - Bạn đã có phần này ở câu trả lời trước)
   // --- API: OVERVIEW ---
@@ -125,10 +129,85 @@ export default function DashboardPage() {
     fetchPerformance();
   }, [datePerformance]);
 
+  const handleExport = async (type: 'excel' | 'csv') => {
+    try {
+      setExportLoading(true);
+
+      // 1. Dữ liệu tổng quan
+      const overviewData = [
+        { 'Chỉ số': 'Tổng Doanh Thu (Gross)', 'Giá trị': formatCurrency(overview?.gross_revenue) },
+        { 'Chỉ số': 'Doanh Thu Thuần (Net)', 'Giá trị': formatCurrency(overview?.net_revenue) },
+        { 'Chỉ số': 'Tổng Tiền Giảm Giá', 'Giá trị': formatCurrency(overview?.total_discount_amount) },
+        { 'Chỉ số': 'Tỉ Lệ Sử Dụng', 'Giá trị': `${overview?.usage_rate_percent || 0}%` },
+        { 'Chỉ số': 'Đã dùng / Đã cấp', 'Giá trị': `${overview?.total_used || 0} / ${overview?.total_assigned || 0}` },
+        { 'Chỉ số': 'Tổng số chiến dịch', 'Giá trị': overview?.total_vouchers || 0 },
+      ];
+
+      // 2. Dữ liệu Top Vouchers hiện tại
+      let currentTopData: any[] = [];
+      if (topFilter === "most_used") currentTopData = topVouchers.most_used;
+      else if (topFilter === "highest_revenue") currentTopData = topVouchers.highest_revenue_impacted;
+      else if (topFilter === "highest_rate") currentTopData = topVouchers.highest_usage_rate;
+      else if (topFilter === "highest_discount") currentTopData = topVouchers.highest_discount_amount;
+
+      const topExportData = (currentTopData || []).map((v: any) => ({
+        'Mã Voucher': v.code,
+        'Tên Voucher': v.title,
+        'Giá trị': topFilter === "most_used" ? `${v.usage_count} lượt` :
+                  topFilter === "highest_revenue" ? formatCurrency(v.revenue_impacted) :
+                  topFilter === "highest_rate" ? `${v.usage_rate_percent}%` :
+                  formatCurrency(v.total_discount_amount)
+      }));
+
+      // 3. Dữ liệu bảng chi tiết
+      const performanceData = (performance || []).map((item: any) => ({
+        'Mã Voucher': item.code,
+        'Tên Voucher': item.title,
+        'Bắt đầu': formatDate(item.release_date),
+        'Kết thúc': formatDate(item.expiry_date),
+        'Đã dùng': item.usage_count,
+        'Tổng cấp': item.quantity,
+        'Tỉ lệ (%)': item.usage_rate_percent,
+        'Tổng giảm giá': formatCurrency(item.total_discount_amount),
+        'Doanh thu đóng góp': formatCurrency(item.revenue_impacted)
+      }));
+
+      const filename = `Bao_cao_thong_ke_voucher`;
+
+      if (type === 'excel') {
+        exportMultiSheetExcel([
+          { data: overviewData, sheetName: 'Tổng quan' },
+          { data: topExportData, sheetName: `Top Voucher (${topFilter})` },
+          { data: performanceData, sheetName: 'Chi tiết hiệu suất' }
+        ], filename);
+      } else {
+        exportToCSV(performanceData, filename);
+      }
+
+      toast.success(`Xuất báo cáo ${type.toUpperCase()} thành công`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi xuất báo cáo thống kê');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-8 bg-slate-50 min-h-screen">
       <div className="flex items-center justify-between border-b pb-4">
-        <h2 className="text-3xl font-bold tracking-tight">Thống kê Voucher</h2>
+        <div>
+          <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent pb-1">
+            Thống kê Voucher
+          </h2>
+          <p className="text-sm text-slate-500 font-medium mt-1">
+            Phân tích chuyên sâu về hiệu suất và doanh thu khuyến mãi
+          </p>
+        </div>
+        <ExportDropdown 
+          onExport={handleExport}
+          isLoading={exportLoading}
+        />
       </div>
 
       {/* --- PHẦN 1: OVERVIEW CARDS --- */}

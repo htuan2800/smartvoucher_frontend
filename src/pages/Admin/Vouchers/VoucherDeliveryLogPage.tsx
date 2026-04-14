@@ -23,7 +23,6 @@ import {
   MailCheck,
   MailX,
   MailWarning,
-  MessageSquare,
   RefreshCw,
   ArrowLeft,
   CheckCircle2,
@@ -31,6 +30,9 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ExportDropdown } from '@/components/admin/common/ExportDropdown';
+import { exportToExcel, exportToCSV } from '@/utils/downloadUtils';
+import { API_BASE_URL, authFetch } from '@/services/apiService';
 
 interface DeliveryLog {
   id: number;
@@ -65,6 +67,7 @@ export default function VoucherDeliveryLogPage() {
   const [summary, setSummary] = useState<Summary>({ total: 0, sent: 0, failed: 0, skipped: 0 });
   const [loading, setLoading] = useState(false);
   const [resendingId, setResendingId] = useState<number | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
 
 
 
@@ -99,6 +102,35 @@ export default function VoucherDeliveryLogPage() {
     }
   };
 
+  const handleExport = async (type: 'excel' | 'csv') => {
+    try {
+      setExportLoading(true);
+      // Delivery logs use a slightly different structure in API response
+      const res = await authFetch(`${API_BASE_URL}/vouchers/${voucherId}/delivery-logs/`);
+      if (res.ok) {
+        const data = await res.json();
+        const exportData = (data.results || []).map((l: DeliveryLog) => ({
+          'ID Giao dịch': `#${l.id}`,
+          'Tên khách hàng': l.username,
+          'Địa chỉ nhận tin': l.email || l.contact_info || 'Không có thông tin',
+          'Kênh gửi': l.channel.toUpperCase(),
+          'Trạng thái': (statusConfig[l.status]?.label || l.status).toUpperCase(),
+          'Chi tiết lỗi': l.error_message || 'Thành công',
+          'Thời điểm thực hiện': new Date(l.sent_at).toLocaleString('vi-VN'),
+        }));
+
+        const filename = `Lich_su_gui_voucher_${voucherId}`;
+        if (type === 'excel') exportToExcel(exportData, filename, 'Lịch sử gửi');
+        else exportToCSV(exportData, filename);
+        toast.success(`Xuất file ${type.toUpperCase()} thành công`);
+      }
+    } catch {
+      toast.error('Lỗi khi xuất lịch sử gửi');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
 
 
   return (
@@ -114,13 +146,25 @@ export default function VoucherDeliveryLogPage() {
               <Mail className="w-7 h-7 text-indigo-600" />
               Lịch sử gửi Voucher
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-500 font-medium mt-1">
               Voucher #{voucherId} — Theo dõi trạng thái gửi email thông báo
             </p>
           </div>
         </div>
 
+
+        <div className="flex items-center gap-3">
+          <ExportDropdown
+            onExport={handleExport}
+            isLoading={exportLoading}
+          />
+          <Button variant="outline" className="flex items-center gap-2" onClick={fetchLogs} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

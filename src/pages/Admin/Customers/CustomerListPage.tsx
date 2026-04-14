@@ -17,11 +17,17 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmModal } from '@/components/layout/admin/confirmModal';
 import { API_BASE_URL, authFetch } from '@/services/apiService';
-import { Calendar, Clock, Edit, Eye, History, Mail, PauseCircle, Phone, PlayCircle, Plus, RefreshCw, Search, ShieldCheck, Star, Trash2, UserCircle, UserPlus, Users, Wallet } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, History, Lock, Mail, PauseCircle, Phone, PlayCircle, Plus, RefreshCw, Search, ShieldCheck, Star, Trash2, UserCircle, UserPlus, Users, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import VoucherHistoryModal from '@/components/admin/vouchers/VoucherHistoryModal';
+import { ExportDropdown } from '@/components/admin/common/ExportDropdown';
+import { exportToExcel, exportToCSV } from '@/utils/downloadUtils';
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+};
 
 interface Customer {
   id: number;
@@ -45,6 +51,7 @@ export default function CustomerListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Dialog states
   const [detailOpen, setDetailOpen] = useState(false);
@@ -136,6 +143,37 @@ export default function CustomerListPage() {
   useEffect(() => {
     fetchCustomers();
   }, [page, pageSize, debouncedSearch]);
+
+  const handleExport = async (type: 'excel' | 'csv') => {
+    try {
+      setExportLoading(true);
+      const url = `${API_BASE_URL}/users/customers/?page_size=1000&search=${encodeURIComponent(debouncedSearch)}`;
+      const res = await authFetch(url);
+      const data = await res.json();
+
+      if (res.ok && data.results) {
+        const exportData = data.results.map((c: any) => ({
+          'Họ tên': c.username,
+          'Email': c.email,
+          'Số điện thoại': c.phone || 'N/A',
+          'Vai trò': c.role === 'customer' ? 'Khách hàng' : c.role,
+          'Điểm tích lũy': `${c.points} điểm`,
+          'Tổng chi tiêu': formatCurrency(c.total_spent || 0),
+          'Trạng thái': c.is_active ? 'Đang hoạt động' : 'Tạm khóa',
+          'Lần cuối đăng nhập': c.last_login ? new Date(c.last_login).toLocaleString('vi-VN') : 'Chưa từng',
+          'Ngày tham gia': new Date(c.date_joined).toLocaleString('vi-VN'),
+        }));
+
+        if (type === 'excel') exportToExcel(exportData, 'Danh_sach_khach_hang', 'Khách hàng');
+        else exportToCSV(exportData, 'Danh_sach_khach_hang');
+        toast.success(`Xuất file ${type.toUpperCase()} thành công`);
+      }
+    } catch {
+      toast.error('Lỗi khi xuất dữ liệu');
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   const handleToggleActive = async () => {
     if (!toggleTarget) return;
@@ -284,13 +322,19 @@ export default function CustomerListPage() {
             Hệ thống quản trị và chăm sóc cơ sở dữ liệu thành viên
           </p>
         </div>
-        <Button
-          onClick={openCreate}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-5 h-11 transition-all font-semibold w-fit"
-        >
-          <Plus className="w-5 h-5 mr-1" />
-          Thêm Khách hàng mới
-        </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+          <ExportDropdown
+            onExport={handleExport}
+            isLoading={exportLoading}
+          />
+          <Button
+            onClick={openCreate}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-5 h-11 transition-all font-semibold w-full sm:w-auto"
+          >
+            <Plus className="w-5 h-5 mr-1" />
+            Thêm Khách hàng mới
+          </Button>
+        </div>
       </div>
 
       {/* Main Table Container - MATCHING Voucher Style */}

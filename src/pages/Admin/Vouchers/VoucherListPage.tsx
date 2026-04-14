@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/layout/admin/confirmModal';
 import { authFetch, API_BASE_URL, customerApi, voucherApi } from '@/services/apiService';
-import { Edit, Trash2, Users, Plus, ChevronLeft, ChevronRight, PauseCircle, PlayCircle, Calendar, Eye, Search, Send, Mail, Lock, ShieldAlert, ShieldCheck, ShieldHalf } from 'lucide-react';
+import { Edit, Trash2, Users, Plus, ChevronLeft, ChevronRight, PauseCircle, PlayCircle, Calendar, Eye, Search, Send, Mail, Lock, ShieldAlert, ShieldCheck } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { ExportDropdown } from '@/components/admin/common/ExportDropdown';
+import { exportToExcel, exportToCSV } from '@/utils/downloadUtils';
 
 const formatCurrency = (value: number) => {
   if (value === undefined || value === null) return '0 ₫';
@@ -96,9 +98,10 @@ export default function VoucherListPage() {
   const [isDistributeModalOpen, setIsDistributeModalOpen] = useState(false);
   const [distributing, setDistributing] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedChannels, setSelectedChannels] = useState<string[]>(['email']);
+  const [selectedChannels] = useState<string[]>(['email']);
   const [autoSelectLoading, setAutoSelectLoading] = useState(false);
   const [autoSelectResult, setAutoSelectResult] = useState<any | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -131,7 +134,7 @@ export default function VoucherListPage() {
 
   const handleAutoSelect = useCallback(async () => {
     if (!selectedVoucherForDist) return;
-    
+
     // Use cached results if available, otherwise fetch
     let result = autoSelectResult;
     if (!result) {
@@ -178,6 +181,46 @@ export default function VoucherListPage() {
       toast.error(err?.response?.data?.error || 'Phân bổ thất bại');
     } finally {
       setDistributing(false);
+    }
+  };
+
+  const handleExport = async (type: 'excel' | 'csv') => {
+    try {
+      setExportLoading(true);
+      // Fetch performance data with a large page size for full export
+      const url = `${API_BASE_URL}/vouchers/stats/performance/?page_size=1000&search=${encodeURIComponent(debouncedSearch)}`;
+      const res = await authFetch(url);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+
+      if (data.results) {
+        const exportData = data.results.map((v: any) => ({
+          'Mã Voucher': v.code,
+          'Tiêu đề': v.title,
+          'Loại giảm giá': v.discount_type === 'percent' ? 'Phần trăm' : 'Số tiền cố định',
+          'Giá trị giảm': v.discount_type === 'fixed' ? formatCurrency(v.discount_value) : `${v.discount_value}%`,
+          'Chi tiêu tối thiểu': formatCurrency(v.min_spend),
+          'Giảm tối đa': v.discount_type === 'percent' ? formatCurrency(v.max_discount) : 'N/A',
+          'Đã dùng': `${v.usage_count} lượt`,
+          'Tổng lượt cấp': `${v.quantity} lượt`,
+          'Giới hạn/Người dùng': `${v.usage_limit_per_user} lần`,
+          'Ngày bắt đầu': formatDate(v.release_date),
+          'Ngày kết thúc': formatDate(v.expiry_date),
+          'Trạng thái': statusLabel[v.status] || v.status,
+          'Ngày tạo': new Date(v.created_at).toLocaleString('vi-VN'),
+        }));
+
+        if (type === 'excel') {
+          exportToExcel(exportData, 'Danh_sach_voucher', 'Voucher');
+        } else {
+          exportToCSV(exportData, 'Danh_sach_voucher');
+        }
+        toast.success(`Xuất file ${type.toUpperCase()} thành công`);
+      }
+    } catch {
+      toast.error('Lỗi khi xuất dữ liệu voucher');
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -267,13 +310,19 @@ export default function VoucherListPage() {
           <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent pb-1">Quản lý Voucher</h2>
           <p className="text-sm text-slate-500 font-medium">Hệ thống phân phối và theo dõi mã khuyến mãi</p>
         </div>
-        <Button
-          onClick={() => navigate('/admin/vouchers/create')}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-5 h-11 transition-all font-semibold w-fit"
-        >
-          <Plus className="w-5 h-5 mr-1" />
-          Tạo Voucher mới
-        </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+          <ExportDropdown
+            onExport={handleExport}
+            isLoading={exportLoading}
+          />
+          <Button
+            onClick={() => navigate('/admin/vouchers/create')}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-5 h-11 transition-all font-semibold w-full sm:w-auto"
+          >
+            <Plus className="w-5 h-5 mr-1" />
+            Tạo Voucher mới
+          </Button>
+        </div>
       </div>
 
       <Card className="border-none shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
@@ -609,18 +658,18 @@ export default function VoucherListPage() {
 
             <ScrollArea className="h-[360px] pr-4 -mr-4 rounded-xl relative">
               {autoSelectLoading && !autoSelectResult && (
-                 <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
-                    <div className="flex flex-col items-center gap-2">
-                       <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                       <span className="text-xs font-bold text-indigo-700">Đang quét điều kiện...</span>
-                    </div>
-                 </div>
+                <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-xs font-bold text-indigo-700">Đang quét điều kiện...</span>
+                  </div>
+                </div>
               )}
               <div className="space-y-2 pb-2">
                 {customers.filter(c => c.username?.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase())).map(c => {
                   const uId = c.id || c.user_id;
                   const isSelected = selectedCustomers.includes(uId);
-                  
+
                   // Matching logic using autoSelectResult.users array
                   const matchInfo = autoSelectResult?.users?.find((u: any) => u.id === uId);
                   const isEligible = matchInfo !== undefined;
@@ -642,12 +691,11 @@ export default function VoucherListPage() {
                   return (
                     <div
                       key={uId}
-                      className={`flex items-center gap-4 p-3.5 rounded-2xl transition-all border-2 group relative overflow-hidden ${
-                        isSelected ? 'bg-indigo-50/80 border-indigo-400 shadow-md ring-4 ring-indigo-500/10' : 
-                        (!isEligible && autoSelectResult) || alreadyAssigned ? 'bg-slate-50 border-slate-200/50 cursor-not-allowed border-l-4 border-l-slate-300' :
-                        'bg-white hover:bg-slate-50 border-slate-100 hover:border-indigo-200 shadow-sm cursor-pointer'
-                      }`}
-                      style={(!isEligible && autoSelectResult) || alreadyAssigned ? { 
+                      className={`flex items-center gap-4 p-3.5 rounded-2xl transition-all border-2 group relative overflow-hidden ${isSelected ? 'bg-indigo-50/80 border-indigo-400 shadow-md ring-4 ring-indigo-500/10' :
+                          (!isEligible && autoSelectResult) || alreadyAssigned ? 'bg-slate-50 border-slate-200/50 cursor-not-allowed border-l-4 border-l-slate-300' :
+                            'bg-white hover:bg-slate-50 border-slate-100 hover:border-indigo-200 shadow-sm cursor-pointer'
+                        }`}
+                      style={(!isEligible && autoSelectResult) || alreadyAssigned ? {
                         backgroundImage: 'linear-gradient(135deg, transparent 25%, rgba(0,0,0,0.02) 25%, rgba(0,0,0,0.02) 50%, transparent 50%, transparent 75%, rgba(0,0,0,0.02) 75%, rgba(0,0,0,0.02) 100%)',
                         backgroundSize: '20px 20px'
                       } : {}}
@@ -658,20 +706,20 @@ export default function VoucherListPage() {
                           <Lock className="w-4 h-4 text-slate-400 opacity-60" />
                         </div>
                       ) : (
-                        <Checkbox 
-                          id={`customer-${uId}`} 
-                          checked={isSelected} 
-                          className={`w-5 h-5 rounded-[6px] transition-all data-[state=checked]:border-indigo-600 data-[state=checked]:bg-indigo-600 ${isSelected ? 'text-white' : 'border-slate-300'}`} 
+                        <Checkbox
+                          id={`customer-${uId}`}
+                          checked={isSelected}
+                          className={`w-5 h-5 rounded-[6px] transition-all data-[state=checked]:border-indigo-600 data-[state=checked]:bg-indigo-600 ${isSelected ? 'text-white' : 'border-slate-300'}`}
                         />
                       )}
 
                       <div className="flex items-center gap-3.5 w-full">
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-black shadow-inner shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : ( (!isEligible && autoSelectResult) || alreadyAssigned ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors')}`}>
+                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-black shadow-inner shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : ((!isEligible && autoSelectResult) || alreadyAssigned ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors')}`}>
                           {c.username?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div className="flex flex-col flex-1">
                           <div className="flex items-center justify-between">
-                            <span className={`text-[15px] font-extrabold tracking-tight ${isSelected ? 'text-indigo-900' : ( (!isEligible && autoSelectResult) || alreadyAssigned ? 'text-slate-400' : 'text-slate-700 group-hover:text-indigo-700 transition-colors')}`}>{c.username}</span>
+                            <span className={`text-[15px] font-extrabold tracking-tight ${isSelected ? 'text-indigo-900' : ((!isEligible && autoSelectResult) || alreadyAssigned ? 'text-slate-400' : 'text-slate-700 group-hover:text-indigo-700 transition-colors')}`}>{c.username}</span>
                             {isEligible && !alreadyAssigned ? (
                               <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0 border-none shadow-none ${isSelected ? 'bg-indigo-200/50 text-indigo-700' : 'bg-emerald-50 text-emerald-600'}`}>
                                 <ShieldCheck className="w-3 h-3 mr-1" />
@@ -693,8 +741,8 @@ export default function VoucherListPage() {
 
                         {alreadyAssigned && (
                           <div className="absolute top-2 right-2 flex items-center gap-1.5 translate-y-1">
-                             <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
-                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Đã sở hữu</span>
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Đã sở hữu</span>
                           </div>
                         )}
                       </div>
@@ -725,7 +773,7 @@ export default function VoucherListPage() {
                   <span className="text-2xl font-black text-indigo-700 leading-none">{selectedCustomers.length}</span>
                   <span className="text-[12px] font-bold text-indigo-500/80 mr-2">Khách hàng</span>
                   {selectedCustomers.length > 0 && (
-                    <button 
+                    <button
                       onClick={() => setSelectedCustomers([])}
                       className="text-[10px] font-bold text-red-500 hover:text-red-600 underline underline-offset-2 uppercase tracking-tight"
                     >

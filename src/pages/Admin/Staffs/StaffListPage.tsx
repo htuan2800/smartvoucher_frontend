@@ -24,7 +24,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -38,6 +37,8 @@ import { API_BASE_URL, authFetch } from '@/services/apiService';
 import { Trash2, UserPlus, ShieldCheck, Mail, UserCircle, Edit, ShieldAlert, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ExportDropdown } from '@/components/admin/common/ExportDropdown';
+import { exportToExcel, exportToCSV } from '@/utils/downloadUtils';
 
 interface Staff {
   id: number;
@@ -51,6 +52,7 @@ interface Staff {
 export default function StaffListPage() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Dialog: add new staff
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -93,6 +95,31 @@ export default function StaffListPage() {
   useEffect(() => {
     fetchStaff();
   }, []);
+
+  const handleExport = async (type: 'excel' | 'csv') => {
+    try {
+      setExportLoading(true);
+      const res = await authFetch(`${API_BASE_URL}/users/staff/`);
+      if (res.ok) {
+        const data = await res.json();
+        const exportData = data.map((s: Staff) => ({
+          'ID': `#${s.id}`,
+          'Tên thành viên': s.username,
+          'Địa chỉ Email': s.email,
+          'Phân quyền': s.role === 'admin' ? 'QUẢN TRỊ VIÊN HỆ THỐNG' : 'NHÂN VIÊN CMS',
+          'Trạng thái': s.is_active ? 'ĐANG CÔNG TÁC' : 'TẠM KHÓA TRUY CẬP',
+        }));
+
+        if (type === 'excel') exportToExcel(exportData, 'Danh_sach_nhan_vien', 'Nhân viên');
+        else exportToCSV(exportData, 'Danh_sach_nhan_vien');
+        toast.success(`Xuất file ${type.toUpperCase()} thành công`);
+      }
+    } catch {
+      toast.error('Lỗi khi xuất dữ liệu');
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,18 +239,25 @@ export default function StaffListPage() {
             Chỉ định quyền hạn và quản lý tài khoản đội ngũ quản trị
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <ExportDropdown
+            onExport={handleExport}
+            isLoading={exportLoading}
+          />
+          <Button 
+            onClick={() => setAddDialogOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-5 h-11 transition-all font-semibold w-fit"
+          >
+            <UserPlus className="w-5 h-5 mr-1.5" />
+            Thêm Quản trị viên
+          </Button>
+        </div>
+      </div>
 
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-5 h-11 transition-all font-semibold w-fit">
-                <UserPlus className="w-5 h-5 mr-1.5" />
-                Thêm Quản trị viên
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md rounded-[2rem] p-0 border-none shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] bg-white overflow-hidden">
-              <div className="bg-gradient-to-br from-indigo-600 to-violet-600 p-8 text-white relative">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-[2rem] p-0 border-none shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] bg-white overflow-hidden">
+          <div className="bg-gradient-to-br from-indigo-600 to-violet-600 p-8 text-white relative">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-black text-white flex items-center gap-3">
                     <UserCircle className="w-7 h-7 opacity-90" />
@@ -304,10 +338,8 @@ export default function StaffListPage() {
                   </Button>
                 </DialogFooter>
               </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+          </DialogContent>
+        </Dialog>
 
       <div className="grid gap-6">
         <Card className="border-none shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
